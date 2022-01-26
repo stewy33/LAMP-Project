@@ -1,0 +1,7 @@
+std_msgs/Float32MultiArray[] obs
+string task
+
+---
+
+std_msgs/Float32MultiArray[] mu
+std_msgs/Float32MultiArray[] sigma
