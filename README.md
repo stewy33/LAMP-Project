@@ -18,7 +18,9 @@ To install and begin using OpenTAMP on an Ubuntu (>14.04) Linux Machine, follow 
     1. Download the correct MuJoCo binary for your OS from [here](https://mujoco.org/download). Be sure to use version 2.1.0 and not a higher version!
     1. Extract the downloaded `mujoco210` directory into `~/.mujoco/mujoco210`
     1. Make sure to run the following (for future convenience, it's recommended to add this line to your `.bashrc` file) `export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libGLEW.so`
+1. Make sure you have [git lfs](https://git-lfs.github.com/) installed
 1. Clone the OpenTAMP repository from GitHub to a folder of your choice: `https://github.com/Algorithmic-Alignment-Lab/OpenTAMP.git`
+    1. Double-check that you have downloaded all the LFS files by running `git lfs pull` from inside the local repository folder after you've cloned the repo!
 1. `cd` into the newly-installed library and run `poetry shell`, then `poetry install`
     1. Especially on ubuntu 20.04, you might first have to manually specify the path to python 3.7 via `poetry env use /usr/bin/python3.7` 
 1. Now, you should have a nice [virtual environment](https://realpython.com/python-virtual-environments-a-primer/) with python configured to run OpenTAMP! Whenever you want to use this, simply `cd` into the OpenTAMP folder and then run `poetry shell`
