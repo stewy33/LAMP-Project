@@ -2,7 +2,6 @@ import os
 import sys
 import time
 
-import ipdb
 import numpy as np
 import pybullet as P
 import robosuite
@@ -15,7 +14,6 @@ import core.util_classes.transform_utils as T
 import main
 from core.parsing import parse_domain_config, parse_problem_config
 from core.util_classes.openrave_body import *
-from core.util_classes.robots import Baxter
 from core.util_classes.transform_utils import *
 from core.util_classes.viewer import PyBulletViewer
 from pma import backtrack_ll_solver_gurobi as bt_ll
@@ -72,10 +70,9 @@ has_render = visual
 obj_mode = 0 if len(cur_objs) > 1 else 2
 env = robosuite.make(
     "PickPlace",
-    robots=["Sawyer"],             # load a Sawyer robot and a Panda robot
+    robots=["Sawyer"],             # load a Sawyer robot
     gripper_types="default",                # use default grippers per robot arm
     controller_configs=controller_config,   # each arm is controlled using OSC
-    #has_renderer=True,                      # on-screen rendering
     has_renderer=has_render,                      # on-screen rendering
     render_camera="frontview",              # visualize the "frontview" camera
     has_offscreen_renderer=(not has_render),           # no off-screen rendering
@@ -118,14 +115,8 @@ domain = parse_domain_config.ParseDomainConfig.parse(d_c)
 hls = FFSolver(d_c)
 p_c = main.parse_file_to_dict(prob)
 visual = len(os.environ.get('DISPLAY', '')) > 0
-#visual = False
 problem = parse_problem_config.ParseProblemConfig.parse(p_c, domain, None, use_tf=True, sess=None, visual=visual)
 params = problem.init_state.params
-# ll_plan_str = ["0: MOVE_TO_GRASP_LEFT BAXTER CLOTH0 ROBOT_INIT_POSE ROBOT_END_POSE"]
-# plan = hls.get_plan(ll_plan_str, domain, problem)
-# plan.d_c = d_c
-# baxter = plan.params['baxter']
-# print(plan.get_failed_preds((0,0)))
 body_ind = env.mjpy_model.body_name2id("robot0_base")
 params["sawyer"].pose[:, 0] = env.sim.data.body_xpos[body_ind]
 
@@ -187,7 +178,6 @@ replan = True
 if not replan:
     plan = oldplan
 
-import ipdb; ipdb.set_trace()
 if replan:
     plan, descr = p_mod_abs(
         hls, solver, domain, problem, goal=goal, debug=True, n_resamples=10
@@ -281,9 +271,6 @@ for act in plan.actions:
     # failed_preds = [p for p in failed_preds if (p[1]._rollout or not type(p[1].expr) is EqExpr)]
     print("FAILED:", t, failed_preds, act.name)
     old_state = env.sim.get_state()
-    from IPython import embed
-
-    embed()
     # import ipdb; ipdb.set_trace()
     # env.sim.reset()
     # env.sim.data.qpos[:7] = plan.params['sawyer'].right[:,t]
@@ -399,7 +386,4 @@ for act in plan.actions:
                 obs = env.step(act)
             print('EE PLAN VS SIM:', env.sim.data.site_xpos[grip_ind]-sawyer.right_ee_pos[:,t], t, env.reward())
         if has_render: env.render()
-    import ipdb; ipdb.set_trace()
 plan.params['sawyer'].right[:,t] = env.sim.data.qpos[:7]
-import ipdb; ipdb.set_trace()
-

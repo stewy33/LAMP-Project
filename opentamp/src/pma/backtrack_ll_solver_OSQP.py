@@ -24,13 +24,16 @@ RS_COEFF = 1e2  # 1e2
 COL_COEFF = 0
 SAMPLE_SIZE = 5
 BASE_SAMPLE_SIZE = 5
+OSQP_EPS_ABS = 1e-06
+OSQP_EPS_REL = 1e-09
+OSQP_MAX_ITER = int(1e08)
 DEBUG = True
 
 
 class BacktrackLLSolverOSQP(LLSolverOSQP):
     def __init__(self, early_converge=False, transfer_norm="min-vel"):
-        # To avoid numerical difficulties during optimization, try keep
-        # range of coefficeint within 1e9
+        # To avoid numerical difficulties during optimization, try to keep
+        # range of coefficient within 1e9
         # (largest_coefficient/smallest_coefficient < 1e9)
         self.transfer_coeff = TRANSFER_COEFF
         self.fixed_coeff = FIXED_COEFF
@@ -53,6 +56,9 @@ class BacktrackLLSolverOSQP(LLSolverOSQP):
         self.tol = 1e-3
         self.saved_params_free = {}
         self.fixed_objs = []
+        self.osqp_eps_abs = OSQP_EPS_ABS
+        self.osqp_eps_rel = OSQP_EPS_REL
+        self.osqp_max_iter = OSQP_MAX_ITER
 
     def _solve_helper(self, plan, callback, active_ts, verbose):
         # certain constraints should be solved first
@@ -479,7 +485,9 @@ class BacktrackLLSolverOSQP(LLSolverOSQP):
         solv.max_merit_coeff_increases = self.max_merit_coeff_increases
 
         # Call the solver on this problem now that it's been constructed
-        success = solv.solve(self._prob, method="penalty_sqp", tol=tol, verbose=verbose)
+        success = solv.solve(self._prob, method="penalty_sqp", tol=tol, verbose=verbose,\
+            osqp_eps_abs=self.osqp_eps_abs, osqp_eps_rel=self.osqp_eps_rel,\
+                osqp_max_iter=self.osqp_max_iter)
 
         # Update the values of the variables by leveraging the ll_param mapping
         self._update_ll_params()
