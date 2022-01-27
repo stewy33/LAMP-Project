@@ -69,9 +69,8 @@ visual = len(os.environ.get("DISPLAY", "")) > 0
 has_render = visual
 obj_mode = 0 if len(cur_objs) > 1 else 2
 env = robosuite.make(
-    "PickPlace",
+    "Wipe",
     robots=["Sawyer"],             # load a Sawyer robot
-    gripper_types="default",                # use default grippers per robot arm
     controller_configs=controller_config,   # each arm is controlled using OSC
     has_renderer=has_render,                      # on-screen rendering
     render_camera="frontview",              # visualize the "frontview" camera
@@ -80,8 +79,6 @@ env = robosuite.make(
     horizon=200,                            # each episode terminates after 200 steps
     use_object_obs=True,                   # no observations needed
     use_camera_obs=False,                   # no observations needed
-    single_object_mode=obj_mode,
-    object_type=cur_objs[0],
     ignore_done=True,
     reward_shaping=True,
     initialization_noise={'magnitude': 0., 'type': 'gaussian'},
@@ -94,10 +91,7 @@ env = robosuite.make(
 obs = env.reset()
 jnts = env.sim.data.qpos[:7]
 for _ in range(40):
-    if ctrl_mode.find("JOINT") >= 0:
-        env.step(np.zeros(8))
-    else:
-        env.step(np.zeros(7))
+    env.step(np.zeros(7))
     env.sim.data.qpos[:7] = jnts
     env.sim.forward()
 env.sim.data.qvel[:] = 0
@@ -126,21 +120,6 @@ params["bread"].pose[:, 0] = [0.1975, 0.1575, 0.845]
 params["cereal"].pose[:, 0] = [0.0025, 0.4025, 0.9]
 params["can"].pose[:, 0] = [0.1975, 0.4025, 0.86]
 params["milk"].pose[:, 0] = [0.002, 0.1575, 0.885]
-
-inds = {}
-offsets = {"cereal": 0.04, "milk": 0.02, "bread": 0.01, "can": 0.02}
-for obj in ["milk", "cereal", "bread", "can"]:
-    adr = env.mjpy_model.joint_name2id("{}_joint0".format(obj.capitalize()))
-    inds[obj] = env.mjpy_model.jnt_qposadr[adr]
-    if obj not in cur_objs:
-        continue
-    ind = inds[obj]
-    pos = env.sim.data.qpos[ind : ind + 3]
-    quat = env.sim.data.qpos[ind + 3 : ind + 7]
-    quat = [quat[1], quat[2], quat[3], quat[0]]
-    euler = T.quaternion_to_euler(quat, "xyzw")
-    params[obj].pose[:, 0] = pos - np.array([0, 0, offsets[obj]])
-    params[obj].rotation[:, 0] = euler
 
 
 params["milk_init_target"].value[:, 0] = params["milk"].pose[:, 0]
