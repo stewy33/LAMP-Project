@@ -49,9 +49,6 @@ cur_objs = ["cereal", "milk", "can", "bread"]
 ctrl_mode = "JOINT_POSITION"
 true_mode = "JOINT"
 
-# ctrl_mode = 'OSC_POSE'
-# true_mode = 'IK'
-
 controller_config = load_controller_config(default_controller=ctrl_mode)
 if ctrl_mode.find("JOINT") >= 0:
     controller_config["kp"] = [7500, 6500, 6500, 6500, 6500, 6500, 12000]
@@ -97,11 +94,6 @@ for _ in range(40):
 env.sim.data.qvel[:] = 0
 env.sim.data.qacc[:] = 0
 env.sim.forward()
-
-# Create a PyBulletViewer for viz purposes
-pbv = PyBulletViewer()
-pbv = pbv.create_viewer()
-
 bt_ll.DEBUG = True
 openrave_bodies = None
 domain_fname = os.getcwd() + "/opentamp/domains/robot_domain/right_robot.domain"
@@ -110,18 +102,14 @@ d_c = main.parse_file_to_dict(domain_fname)
 domain = parse_domain_config.ParseDomainConfig.parse(d_c)
 hls = FFSolver(d_c)
 p_c = main.parse_file_to_dict(prob)
-visual = len(os.environ.get('DISPLAY', '')) > 0
 problem = parse_problem_config.ParseProblemConfig.parse(p_c, domain, None, use_tf=True, sess=None, visual=visual)
 params = problem.init_state.params
 body_ind = env.mjpy_model.body_name2id("robot0_base")
-# Resetting the initial state to specific values
-params["sawyer"].pose[:, 0] = env.sim.data.body_xpos[body_ind]
+params["sawyer"].pose[:, 0] = env.sim.data.body_xpos[body_ind] # sets sawyer's pose to its actual init pose
 params["bread"].pose[:, 0] = [0.1975, 0.1575, 0.845]
 params["cereal"].pose[:, 0] = [0.0025, 0.4025, 0.9]
 params["can"].pose[:, 0] = [0.1975, 0.4025, 0.86]
 params["milk"].pose[:, 0] = [0.002, 0.1575, 0.885]
-
-
 params["milk_init_target"].value[:, 0] = params["milk"].pose[:, 0]
 params["milk_init_target"].rotation[:, 0] = params["milk"].rotation[:, 0]
 params["cereal_init_target"].value[:, 0] = params["cereal"].pose[:, 0]
@@ -161,15 +149,6 @@ plan, descr = p_mod_abs(
 if len(sys.argv) > 1 and sys.argv[1] == "end":
     sys.exit(0)
 
-# from IPython import embed; embed()
-
-# if load_traj:
-#    inds, traj = np.load('MotionServer0_17.npy', allow_pickle=True)
-#    import ipdb; ipdb.set_trace()
-#    for anum, act in enumerate(plan.actions):
-#        for pname, aname in inds:
-#            for t in range(act.active_timesteps[0], act.active_timesteps[1]+1):
-#                getattr(plan.params[pname], aname)[:,t] = traj[t-anum][inds[pname, aname]]
 
 sawyer = plan.params["sawyer"]
 cmds = []
