@@ -1,4 +1,3 @@
-import software_constants as const
 import numpy as np
 
 """
