@@ -266,7 +266,7 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
             elif a_name.find("moveto_pose") >= 0:
                 # In this case, 'obj' is actually a start_pose
                 # and targ is an end_pose
-                pos = targ.right_ee_pose
+                pos = targ.right_ee_pos
                 orn = T.euler_to_quaternion(targ.right_ee_rot, "xyzw")
                 pose = self.gripper_pose_sampler(
                     robot,
