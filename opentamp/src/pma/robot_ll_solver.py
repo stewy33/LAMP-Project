@@ -224,7 +224,6 @@ class RobotLLSolver(LLSolver):
         rs_param = self.get_resample_param(a)
 
         def recursive_solve():
-            # import ipdb; ipdb.set_trace()
             ## don't optimize over any params that are already set
             old_params_free = {}
             for p in plan.params.values():

@@ -27,7 +27,65 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
     def freeze_rs_param(self, act):
         return True
 
-    def vertical_gripper(
+    def gripper_pose_sampler(
+        self,
+        robot,
+        arm,
+        target_loc,
+        target_quat,
+        gripper_open=True,
+        ts=(0, 20),
+    ):
+        """Function to use ik to get the pose of arm joints for
+        potentially multiple arms."""
+        start_ts, end_ts = ts
+        robot_body = robot.openrave_body
+        robot_body.set_from_param(robot, start_ts)
+        # gripper_axis = robot.geom.get_gripper_axis(arm)
+        # target_axis = [0, 0, -1]
+        # quat = OpenRAVEBody.quat_from_v1_to_v2(gripper_axis, target_axis)
+
+        robot_body.set_pose(robot.pose[:, ts[0]])
+        robot_body.set_dof({arm: REF_JNTS})
+        iks = robot_body.get_ik_from_pose(target_loc, target_quat, arm)
+        if not len(iks):
+            # Failed to perform ik
+            return None
+
+        arm_pose = np.array(iks).reshape((-1, 1))
+        pose = {arm: arm_pose}
+        gripper = robot.geom.get_gripper(arm)
+        if gripper is not None:
+            pose[gripper] = (
+                robot.geom.get_gripper_open_val()
+                if gripper_open
+                else robot.geom.get_gripper_closed_val()
+            )
+            pose[gripper] = np.array(pose[gripper]).reshape((-1, 1))
+ 
+        for aux_arm in robot.geom.arms:
+            if aux_arm == arm:
+                continue
+            old_pose = getattr(robot, aux_arm)[:, start_ts].reshape((-1, 1))
+            pose[aux_arm] = old_pose
+            aux_gripper = robot.geom.get_gripper(aux_arm)
+            if aux_gripper is not None:
+                pose[aux_gripper] = getattr(robot, aux_gripper)[:, start_ts].reshape(
+                    (-1, 1)
+                )
+
+        robot_body.set_pose(robot.pose[:, ts[0]])
+        for arm in robot.geom.arms:
+            robot_body.set_dof({arm: pose[arm].flatten().tolist()})
+            info = robot_body.fwd_kinematics(arm)
+            pose["{}_ee_pos".format(arm)] = np.array(info["pos"]).reshape((-1, 1))
+            pose["{}_ee_rot".format(arm)] = np.array(
+                T.quaternion_to_euler(info["quat"], "xyzw")
+            ).reshape((-1, 1))
+        return pose
+
+
+    def vertical_gripper_with_obj_pose_sampler(
         self,
         robot,
         arm,
@@ -38,11 +96,13 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
         null_zero=True,
         disp=np.array([0, 0, const.GRASP_DIST]),
     ):
+        """Samples vertical positions for the gripper that are some distance
+        away from an object. Sampling is stochastic if `rand` is true, else
+        simply returns the final pose. Useful for grasping and placing."""
         start_ts, end_ts = ts
         robot_body = robot.openrave_body
         robot_body.set_from_param(robot, start_ts)
 
-        old_arm_pose = getattr(robot, arm)[:, start_ts].copy()
         offset = (
             obj.geom.grasp_point if hasattr(obj.geom, "grasp_point") else np.zeros(3)
         )
@@ -64,10 +124,6 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
         iks = []
         attempt = 0
         robot_body.set_pose(robot.pose[:, ts[0]])
-        # robot_body.set_dof({arm: np.zeros(len(robot.geom.jnt_names[arm]))})
-        # if not null_zero: #ts[1]-ts[0] > 5:
-        #    robot_body.set_dof({arm: getattr(robot, arm)[:, ts[0]]})
-        # robot_body.set_dof({arm: getattr(robot, arm)[:, ts[0]]})
         robot_body.set_dof({arm: REF_JNTS})
 
         while not len(iks) and attempt < 20:
@@ -110,12 +166,14 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
             ).reshape((-1, 1))
         return pose
 
+
     def obj_in_gripper(self, ee_pos, targ_rot, obj):
         pose = {}
         pose["pose"] = ee_pos.flatten() - np.array(obj.geom.grasp_point).flatten()
         pose["pose"] = pose["pose"].reshape((-1, 1))
         pose["rotation"] = targ_rot.reshape((-1, 1))
         return pose
+
 
     def obj_pose_suggester(self, plan, anum, resample_size=20, st=0):
         robot_pose = []
@@ -136,17 +194,6 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
             zero_null = False
 
         robot_body.set_pose(robot.pose[:, st])
-        # for arm in robot.geom.arms:
-        #    robot_body.set_dof({arm: getattr(robot, arm)[:,st].flatten().tolist()})
-
-        # for arm in robot.geom.arms:
-        #    attr = '{}_ee_pos'.format(arm)
-        #    #rot_attr = '{}_ee_rot'.format(arm)
-        #    if hasattr(robot, attr):
-        #        info = robot_body.fwd_kinematics(arm)
-        #        getattr(robot, attr)[:, st] = info['pos']
-        #        #getattr(robot, rot_attr)[:, st] = T.quaternion_to_euler(info['quat'], 'xyzw')
-
         obj = act.params[1]
         targ = act.params[2]
         st, et = act.active_timesteps
@@ -180,7 +227,7 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
         ):
             gripper_open = True
 
-        rand = False  # a_name.find('move') >= 0
+        rand = False
 
         if next_act is not None:
             next_obj = next_act.params[1]
@@ -197,7 +244,7 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
         for i in range(resample_size):
             ### Cases for when behavior can be inferred from current action
             if a_name.find("grasp") >= 0:
-                pose = self.vertical_gripper(
+                pose = self.vertical_gripper_with_obj_pose_sampler(
                     robot,
                     arm,
                     obj,
@@ -207,7 +254,7 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
                     null_zero=zero_null,
                 )
             elif a_name.find("putdown") >= 0:
-                pose = self.vertical_gripper(
+                pose = self.vertical_gripper_with_obj_pose_sampler(
                     robot,
                     arm,
                     obj,
@@ -216,13 +263,26 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
                     rand=(rand or (i > 0)),
                     null_zero=zero_null,
                 )
+            elif a_name.find("moveto_pose") >= 0:
+                # In this case, 'obj' is actually a start_pose
+                # and targ is an end_pose
+                pos = targ.right_ee_pose
+                orn = T.euler_to_quaternion(targ.right_ee_rot, "xyzw")
+                pose = self.gripper_pose_sampler(
+                    robot,
+                    arm,
+                    pos,
+                    orn,
+                    gripper_open,
+                    (st, et),
+                )
 
             ### Cases for when behavior cannot be inferred from current action
             elif next_act is None:
                 pose = None
 
             elif next_a_name.find("grasp") >= 0 or next_a_name.find("putdown") >= 0:
-                pose = self.vertical_gripper(
+                pose = self.vertical_gripper_with_obj_pose_sampler(
                     robot,
                     next_arm,
                     next_obj,
@@ -254,6 +314,7 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
                 targ = act.params[2]
 
             if pose is None:
+                print(f"ERROR: No sampling function defined for action {a_name}!")
                 break
             robot_pose.append(pose)
 

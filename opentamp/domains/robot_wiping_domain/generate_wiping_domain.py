@@ -258,6 +258,26 @@ class Move(Action):
             (' (not (RobotAt ?robot ?start))', '{}:{}'.format(end, end-1)),
             ('(RobotAt ?robot ?end)', '{}:{}'.format(end, end-1))]
 
+class MoveSimple(Action):
+    def __init__(self):
+        self.name = 'moveto'
+        self.timesteps = 17 # 25
+        end = self.timesteps - 1
+        self.end = end
+        self.args = '(?robot - Robot ?start - RobotPose ?end - RobotPose)'
+        self.pre = [\
+            ('(RobotAt ?robot ?start)', '{}:{}'.format(0, -1)),
+            ('(not (RobotAt ?robot ?end))', '{}:{}'.format(0, -1)),
+            # ('(forall (?obj - Item)\
+            #     (not (Obstructs ?robot ?obj)))', '{}:{}'.format(1, end-1)),
+            # ('(IsMP ?robot)', '{}:{}'.format(0, end-1)),
+            # ('(WithinJointLimit ?robot)', '{}:{}'.format(0, end)),
+            # ('(forall (?w - Obstacle) (not (RCollides ?robot ?w)))', '{}:{}'.format(1, end-1)),
+        ]
+        self.eff = [\
+            (' (not (RobotAt ?robot ?start))', '{}:{}'.format(end, end-1)),
+            ('(RobotAt ?robot ?end)', '{}:{}'.format(end, end-1))]
+
 
 class MoveLeft(Move):
     def __init__(self):
@@ -682,7 +702,8 @@ class PutdownRight(Putdown):
             ])
 
 
-actions = [MoveToGraspRight()]
+# actions = [MoveToGraspRight()]
+actions = [MoveSimple()]
 right_dom_str = dom_str
 for action in actions:
     right_dom_str += '\n\n'
@@ -694,6 +715,6 @@ right_dom_str = right_dom_str.replace('            ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 print(right_dom_str)
-f = open('opentamp/domains/robot_wiping_domain/right_moveto.domain', 'w+')
+f = open('opentamp/domains/robot_wiping_domain/right_wipe_moveto.domain', 'w+')
 f.write(right_dom_str)
 

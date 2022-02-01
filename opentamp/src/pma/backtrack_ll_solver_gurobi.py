@@ -100,7 +100,8 @@ class BacktrackLLSolverGurobi(LLSolver):
         if anum > amax:
             return True
         a = plan.actions[anum]
-        if DEBUG: print(("backtracking Solve on {}".format(a.name)))
+        if DEBUG:
+            print(("backtracking Solve on {}".format(a.name)))
         active_ts = a.active_timesteps
         active_ts = (max(st, active_ts[0]), active_ts[1])
 
@@ -161,6 +162,7 @@ class BacktrackLLSolverGurobi(LLSolver):
             success = self.child_solver.solve(plan, callback=callback_a, n_resamples=n_resamples,
                                               active_ts = active_ts, verbose=verbose, force_init=True,
                                               init_traj=init_traj)
+
             if not success:
                 ## if planning fails we're done
                 return False
@@ -186,7 +188,6 @@ class BacktrackLLSolverGurobi(LLSolver):
         sampler_begin
         """
         robot_poses = self.obj_pose_suggester(plan, anum, resample_size=1, st=st)
-
         """
         sampler end
         """
@@ -261,15 +262,6 @@ class BacktrackLLSolverGurobi(LLSolver):
         success = False
         if callback is not None:
             viewer = callback()
-        #if force_init or not plan.initialized:
-        #    self._solve_opt_prob(plan, priority=-2, callback=callback,
-        #        active_ts=active_ts, verbose=verbose, init_traj=init_traj)
-        #    # self._solve_opt_prob(plan, priority=-1, callback=callback,
-        #    #     active_ts=active_ts, verbose=verbose)
-        #    plan.initialized=True
-
-        #if success or len(plan.get_failed_preds(active_ts=active_ts, tol=1e-3)) == 0:
-        #    return True
 
         for priority in self.solve_priorities:
             if DEBUG: print('solving at priority', priority)
@@ -278,7 +270,6 @@ class BacktrackLLSolverGurobi(LLSolver):
                 success = self._solve_opt_prob(plan, priority=priority,
                                 callback=callback, active_ts=active_ts, verbose=verbose,
                                 init_traj=init_traj, debug=debug)
-                # success = len(plan.get_failed_preds(active_ts=active_ts, tol=1e-3)) == 0
 
                 # No point in resampling if the endpoints or linear constraints can't be satisfied
                 if success or priority < 0 or n_resamples == 0:
@@ -385,7 +376,6 @@ class BacktrackLLSolverGurobi(LLSolver):
                 self._add_all_timesteps_of_actions(plan, priority=priority, add_nonlin=True,
                                                    active_ts=active_ts, verbose=verbose)
                 tol=1e-3
-                # import ipdb; ipdb.set_trace()
 
         solv = Solver()
         solv.initial_trust_region_size = initial_trust_region_size

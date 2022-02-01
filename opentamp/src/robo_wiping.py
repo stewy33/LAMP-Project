@@ -103,7 +103,7 @@ env.sim.forward()
 
 bt_ll.DEBUG = True
 openrave_bodies = None
-domain_fname = os.getcwd() + "/opentamp/domains/robot_wiping_domain/right_moveto.domain"
+domain_fname = os.getcwd() + "/opentamp/domains/robot_wiping_domain/right_wipe_moveto.domain"
 prob = os.getcwd() + "/opentamp/domains/robot_wiping_domain/probs/simple_move_prob.prob"
 d_c = main.parse_file_to_dict(domain_fname)
 domain = parse_domain_config.ParseDomainConfig.parse(d_c)
@@ -122,18 +122,6 @@ params["milk"].pose[:, 0] = [0.002, 0.1575, 0.885]
 
 inds = {}
 offsets = {"cereal": 0.04, "milk": 0.02, "bread": 0.01, "can": 0.02}
-# for obj in ["milk", "cereal", "bread", "can"]:
-#     adr = env.mjpy_model.joint_name2id("{}_joint0".format(obj.capitalize()))
-#     inds[obj] = env.mjpy_model.jnt_qposadr[adr]
-#     if obj not in cur_objs:
-#         continue
-#     ind = inds[obj]
-#     pos = env.sim.data.qpos[ind : ind + 3]
-#     quat = env.sim.data.qpos[ind + 3 : ind + 7]
-#     quat = [quat[1], quat[2], quat[3], quat[0]]
-#     euler = T.quaternion_to_euler(quat, "xyzw")
-#     params[obj].pose[:, 0] = pos - np.array([0, 0, offsets[obj]])
-#     params[obj].rotation[:, 0] = euler
 
 
 params["milk_init_target"].value[:, 0] = params["milk"].pose[:, 0]
@@ -172,6 +160,10 @@ plan, descr = p_mod_abs(
 if len(sys.argv) > 1 and sys.argv[1] == "end":
     sys.exit(0)
 
+if plan is None:
+    print("Could not find plan; terminating.")
+    sys.exit(1)
+
 sawyer = plan.params["sawyer"]
 cmds = []
 for t in range(plan.horizon):
@@ -209,11 +201,7 @@ env.sim.forward()
 rot_ref = T.euler_to_quaternion(params["sawyer"].right_ee_rot[:, 0], "xyzw")
 
 for _ in range(40):
-    if ctrl_mode.find("JOINT") >= 0:
-        env.step(np.zeros(8))
-    else:
-        env.step(np.zeros(7))
-
+    env.step(np.zeros(7))
     env.sim.data.qpos[:7] = params["sawyer"].right[:, 0]
     env.sim.forward()
 
