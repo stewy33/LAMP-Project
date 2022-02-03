@@ -1,5 +1,4 @@
 from collections import OrderedDict
-import core.util_classes.common_constants as const
 import os
 
 import pybullet as p

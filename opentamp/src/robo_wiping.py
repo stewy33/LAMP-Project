@@ -69,9 +69,9 @@ visual = len(os.environ.get("DISPLAY", "")) > 0
 has_render = visual
 obj_mode = 0 if len(cur_objs) > 1 else 2
 env = robosuite.make(
-    "PickPlace",
+    "Wipe",
     robots=["Sawyer"],             # load a Sawyer robot
-    gripper_types="default",                # use default grippers per robot arm
+    # gripper_types="default",                # use default grippers per robot arm
     controller_configs=controller_config,   # each arm is controlled using OSC
     has_renderer=has_render,                      # on-screen rendering
     render_camera="frontview",              # visualize the "frontview" camera
@@ -80,8 +80,8 @@ env = robosuite.make(
     horizon=200,                            # each episode terminates after 200 steps
     use_object_obs=True,                   # no observations needed
     use_camera_obs=False,                   # no observations needed
-    single_object_mode=obj_mode,
-    object_type=cur_objs[0],
+    # single_object_mode=obj_mode,
+    # object_type=cur_objs[0],
     ignore_done=True,
     reward_shaping=True,
     initialization_noise={'magnitude': 0., 'type': 'gaussian'},
@@ -94,24 +94,17 @@ env = robosuite.make(
 obs = env.reset()
 jnts = env.sim.data.qpos[:7]
 for _ in range(40):
-    if ctrl_mode.find("JOINT") >= 0:
-        env.step(np.zeros(8))
-    else:
-        env.step(np.zeros(7))
+    env.step(np.zeros(7))
     env.sim.data.qpos[:7] = jnts
     env.sim.forward()
 env.sim.data.qvel[:] = 0
 env.sim.data.qacc[:] = 0
 env.sim.forward()
 
-# Create a PyBulletViewer for viz purposes
-pbv = PyBulletViewer()
-pbv = pbv.create_viewer()
-
 bt_ll.DEBUG = True
 openrave_bodies = None
-domain_fname = os.getcwd() + "/opentamp/domains/robot_manipulation_domain/right_robot.domain"
-prob = os.getcwd() + "/opentamp/domains/robot_manipulation_domain/probs/temp_pickplace_prob.prob"
+domain_fname = os.getcwd() + "/opentamp/domains/robot_wiping_domain/right_wipe_moveto.domain"
+prob = os.getcwd() + "/opentamp/domains/robot_wiping_domain/probs/simple_move_prob.prob"
 d_c = main.parse_file_to_dict(domain_fname)
 domain = parse_domain_config.ParseDomainConfig.parse(d_c)
 hls = FFSolver(d_c)
@@ -129,18 +122,6 @@ params["milk"].pose[:, 0] = [0.002, 0.1575, 0.885]
 
 inds = {}
 offsets = {"cereal": 0.04, "milk": 0.02, "bread": 0.01, "can": 0.02}
-for obj in ["milk", "cereal", "bread", "can"]:
-    adr = env.mjpy_model.joint_name2id("{}_joint0".format(obj.capitalize()))
-    inds[obj] = env.mjpy_model.jnt_qposadr[adr]
-    if obj not in cur_objs:
-        continue
-    ind = inds[obj]
-    pos = env.sim.data.qpos[ind : ind + 3]
-    quat = env.sim.data.qpos[ind + 3 : ind + 7]
-    quat = [quat[1], quat[2], quat[3], quat[0]]
-    euler = T.quaternion_to_euler(quat, "xyzw")
-    params[obj].pose[:, 0] = pos - np.array([0, 0, offsets[obj]])
-    params[obj].rotation[:, 0] = euler
 
 
 params["milk_init_target"].value[:, 0] = params["milk"].pose[:, 0]
@@ -170,10 +151,7 @@ params["sawyer"].right_ee_pos[:, 0] = info["pos"]
 params["sawyer"].right_ee_pos[:, 0] = T.quaternion_to_euler(info["quat"], "xyzw")
 
 
-goal = ""
-for obj in cur_objs:
-    goal += '(Near {} {}_end_target)'.format(obj, obj)
-goal += ''
+goal = "(RobotAt sawyer robot_end_pose)"
 solver = RobotSolver()
 plan, descr = p_mod_abs(
     hls, solver, domain, problem, goal=goal, debug=True, n_resamples=10
@@ -182,29 +160,22 @@ plan, descr = p_mod_abs(
 if len(sys.argv) > 1 and sys.argv[1] == "end":
     sys.exit(0)
 
-# from IPython import embed; embed()
-
-# if load_traj:
-#    inds, traj = np.load('MotionServer0_17.npy', allow_pickle=True)
-#    import ipdb; ipdb.set_trace()
-#    for anum, act in enumerate(plan.actions):
-#        for pname, aname in inds:
-#            for t in range(act.active_timesteps[0], act.active_timesteps[1]+1):
-#                getattr(plan.params[pname], aname)[:,t] = traj[t-anum][inds[pname, aname]]
+if plan is None:
+    print("Could not find plan; terminating.")
+    sys.exit(1)
 
 sawyer = plan.params["sawyer"]
 cmds = []
 for t in range(plan.horizon):
     rgrip = sawyer.right_gripper[0, t]
     if true_mode.find("JOINT") >= 0:
-        act = np.r_[sawyer.right[:, t], [-rgrip]]
+        act = np.r_[sawyer.right[:, t]]
     else:
         pos, euler = sawyer.right_ee_pos[:, t], sawyer.right_ee_rot[:, t]
         quat = np.array(T.euler_to_quaternion(euler, "xyzw"))
         # angle = robosuite.utils.transform_utils.quat2axisangle(quat)
-
         rgrip = sawyer.right_gripper[0, t]
-        act = np.r_[pos, quat, [-rgrip]]
+        act = np.r_[pos, quat]
         # act = np.r_[pos, angle, [-rgrip]]
         # act = np.r_[sawyer.right[:,t], [-rgrip]]
     cmds.append(act)
@@ -229,11 +200,7 @@ env.sim.forward()
 rot_ref = T.euler_to_quaternion(params["sawyer"].right_ee_rot[:, 0], "xyzw")
 
 for _ in range(40):
-    if ctrl_mode.find("JOINT") >= 0:
-        env.step(np.zeros(8))
-    else:
-        env.step(np.zeros(7))
-
+    env.step(np.zeros(7))
     env.sim.data.qpos[:7] = params["sawyer"].right[:, 0]
     env.sim.forward()
 
@@ -250,12 +217,6 @@ ref_jnts = np.array([0, -np.pi / 4, 0, np.pi / 4, 0, np.pi / 2, 0])
 for act in plan.actions:
     t = act.active_timesteps[0]
     plan.params["sawyer"].right[:, t] = env.sim.data.qpos[:7]
-    for obj in cur_objs:
-        ind = inds[obj]
-        plan.params[obj].pose[:, t] = env.sim.data.qpos[ind : ind + 3]
-        plan.params[obj].rotation[:, t] = T.quaternion_to_euler(
-            env.sim.data.qpos[ind + 3 : ind + 7], "wxyz"
-        )
     grip = env.sim.data.qpos[7:9].copy()
     failed_preds = plan.get_failed_preds(active_ts=(t, t), priority=3, tol=tol)
     oldqfrc = env.sim.data.qfrc_applied[:]

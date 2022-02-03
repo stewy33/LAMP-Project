@@ -30,20 +30,31 @@ To install and begin using OpenTAMP on an Ubuntu (>14.04) Linux Machine, follow 
 **ToDo: Might need to add baselines and h-baselines because they're currently in setup.sh**
 
 
-## Verify planning
+### Verify planning
 
 Try running `python opentamp/src/test_grip_det.py` from the *root of the repository*, and if this script successfully completes and displays a short video at the end, your installation is correct!
 
 This should take under a minute to run.
 
 
-## Verify learning
+### Verify learning
 If you wish to train policies from the code, verify that a Mujoco key titled `mjkey.txt` is in your home directory an that `FULL_INSTALL=true` in `setup.sh`. Once this has completed, make sure you are on the virtual env (by running `tampenv`) and try running `test_training.sh`; this script will attempt to train policies for a two object pick-place problem with some default parameter settings. Once completed, is will generate some plots on performance and videos of rollouts into the `~/Dropbox` directory. Note the script will use about 16 proccesses, so it's reccomended to run it from at least an 8-physical core machine.
 
 
-## The code
+## Code Overview
 
-### Defining domains
+### Defining Domains/Problems
+One of the main goals of OpenTAMP is to make both designing and understanding TAMP problems straightforward. To this end, we take inspiration from  [PDDL](https://www.cs.toronto.edu/~sheila/2542/s14/A1/introtopddl2.pdf) and require both 'domain' and 'problem' files. At a high-level, domain files specify the types and dynamics of a particular problem domain (analogous to a class definition from object-oriented programming) and problem files specify the concrete objects and initial conditions of a particular instantiation of a domain (similar to an instance from object-oriented programming). In OpenTAMP, domain files are meant to provide an easy-to-understand but incomplete overview of a domain; details such as how particular types are implemented, or how particular constraints and their gradients are defined are defined elsewhere and must be imported.
+
+At a high level, OpenTAMP domain definitions require:
+
+- Types: all parameters must be one of these types. There is no specific code defining these that gets imported.
+- Attribute Import Paths: these specify paths to Python classes that describe parameter attributes (which are used to define Primitive Predicates)
+- Predicates Import Path: this specifies a path to Python classes defining all necessary predicates.
+- Subtypes: these specify subtypes and their inheritance structure with the types defined above.
+- Primitive Predicates: these specify continuous-valued object attributes (i.e, all objects of a certain type will have these attributes). Together, all the objects and their attributes define the low-level state of a problem (which TAMP will use motion planning to search through). NOTE that calling these 'predicates' is a slight abuse of terminology, since these are not boolean functions.
+- Derived Predicates: these specify boolean-valued predicates defined over objects of certain types. Together, these predicates specify the high-level, abstract state of a problem (which TAMP will use task planning to search through).
+- Actions: these specify the actions available to the agent. The action's preconditions and effects must be in terms of the derived predicates, and the definition must also specify timesteps over which the action itself, as well as its preconditions and effects, hold.
 
 #### Domain files
 Specifications for all domains should be placed in the `domains` folder directly under the `opentamp` directory
