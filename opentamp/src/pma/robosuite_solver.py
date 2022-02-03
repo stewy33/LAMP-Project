@@ -27,12 +27,11 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
     def freeze_rs_param(self, act):
         return True
 
-    def gripper_pose_sampler(
+    def gripper_pose_upright_sampler(
         self,
         robot,
         arm,
         target_loc,
-        target_quat,
         gripper_open=True,
         ts=(0, 20),
     ):
@@ -47,7 +46,10 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
 
         robot_body.set_pose(robot.pose[:, ts[0]])
         robot_body.set_dof({arm: REF_JNTS})
-        iks = robot_body.get_ik_from_pose(target_loc, target_quat, arm)
+        gripper_axis = robot.geom.get_gripper_axis(arm)
+        target_axis = [0, 0, -1]
+        target_quat = OpenRAVEBody.quat_from_v1_to_v2(gripper_axis, target_axis)
+        iks = robot_body.get_ik_from_pose(target_loc.squeeze(), target_quat, arm)
         if not len(iks):
             # Failed to perform ik
             return None
@@ -267,12 +269,10 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
                 # In this case, 'obj' is actually a start_pose
                 # and targ is an end_pose
                 pos = targ.right_ee_pos
-                orn = T.euler_to_quaternion(targ.right_ee_rot, "xyzw")
-                pose = self.gripper_pose_sampler(
+                pose = self.gripper_pose_upright_sampler(
                     robot,
                     arm,
                     pos,
-                    orn,
                     gripper_open,
                     (st, et),
                 )

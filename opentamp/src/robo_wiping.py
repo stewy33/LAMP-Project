@@ -169,14 +169,13 @@ cmds = []
 for t in range(plan.horizon):
     rgrip = sawyer.right_gripper[0, t]
     if true_mode.find("JOINT") >= 0:
-        act = np.r_[sawyer.right[:, t], [-rgrip]]
+        act = np.r_[sawyer.right[:, t]]
     else:
         pos, euler = sawyer.right_ee_pos[:, t], sawyer.right_ee_rot[:, t]
         quat = np.array(T.euler_to_quaternion(euler, "xyzw"))
         # angle = robosuite.utils.transform_utils.quat2axisangle(quat)
-
         rgrip = sawyer.right_gripper[0, t]
-        act = np.r_[pos, quat, [-rgrip]]
+        act = np.r_[pos, quat]
         # act = np.r_[pos, angle, [-rgrip]]
         # act = np.r_[sawyer.right[:,t], [-rgrip]]
     cmds.append(act)
@@ -218,12 +217,6 @@ ref_jnts = np.array([0, -np.pi / 4, 0, np.pi / 4, 0, np.pi / 2, 0])
 for act in plan.actions:
     t = act.active_timesteps[0]
     plan.params["sawyer"].right[:, t] = env.sim.data.qpos[:7]
-    for obj in cur_objs:
-        ind = inds[obj]
-        plan.params[obj].pose[:, t] = env.sim.data.qpos[ind : ind + 3]
-        plan.params[obj].rotation[:, t] = T.quaternion_to_euler(
-            env.sim.data.qpos[ind + 3 : ind + 7], "wxyz"
-        )
     grip = env.sim.data.qpos[7:9].copy()
     failed_preds = plan.get_failed_preds(active_ts=(t, t), priority=3, tol=tol)
     oldqfrc = env.sim.data.qfrc_applied[:]

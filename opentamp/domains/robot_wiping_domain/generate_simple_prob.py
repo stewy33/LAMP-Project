@@ -11,6 +11,7 @@ OPEN_GRIPPER = [0.02, -0.01]
 CLOSE_GRIPPER = [0.01, -0.02]
 EE_POS = [0.11338, -0.16325, 1.03655]
 EE_ROT = [3.139, 0.00, -2.182]
+ON_TABLE_POS = [0.4, -0.15, 0.912]
 
 TABLE_GEOM = [1.23/2, 2.45/2, 0.97/2]
 TABLE_POS = [1.23/2-0.1, 0, -3.]
@@ -25,6 +26,17 @@ def get_sawyer_pose_str(name, RArm = R_ARM_INIT, G = OPEN_GRIPPER, Pos = SAWYER_
     s += "(value {} {}), ".format(name, Pos)
     s += "(rotation {} {}), ".format(name, [0.,0.,0.])
     return s
+
+def get_sawyer_end_pose_str(name):
+    s = ""
+    s += "(right {} undefined), ".format(name)
+    s += "(right_ee_pos {} {}), ".format(name, ON_TABLE_POS)
+    s += "(right_ee_rot {} undefined), ".format(name)
+    s += "(right_gripper {} undefined), ".format(name)
+    s += "(value {} undefined), ".format(name)
+    s += "(rotation {} undefined), ".format(name)
+    return s
+
 
 def get_sawyer_str(name, RArm = R_ARM_INIT, G = OPEN_GRIPPER, Pos = SAWYER_INIT_POSE):
     s = ""
@@ -106,7 +118,7 @@ def main():
         s += get_undefined_robot_pose_str("{0}_putdown_end".format(item))
     s += get_sawyer_str('sawyer', R_ARM_INIT, OPEN_GRIPPER, SAWYER_INIT_POSE)
     s += get_sawyer_pose_str('robot_init_pose', R_ARM_INIT, OPEN_GRIPPER, SAWYER_INIT_POSE)
-    s += get_undefined_robot_pose_str('robot_end_pose')
+    s += get_sawyer_end_pose_str('robot_end_pose')
 
     s += "(geom table {}), ".format(TABLE_GEOM)
     s += "(pose table {}), ".format(TABLE_POS)
