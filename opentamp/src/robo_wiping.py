@@ -103,7 +103,7 @@ env.sim.forward()
 
 bt_ll.DEBUG = True
 openrave_bodies = None
-domain_fname = os.getcwd() + "/opentamp/domains/robot_wiping_domain/right_wipe_moveto.domain"
+domain_fname = os.getcwd() + "/opentamp/domains/robot_wiping_domain/right_wipe_movetotable.domain"
 prob = os.getcwd() + "/opentamp/domains/robot_wiping_domain/probs/simple_move_prob.prob"
 d_c = main.parse_file_to_dict(domain_fname)
 domain = parse_domain_config.ParseDomainConfig.parse(d_c)
@@ -151,7 +151,7 @@ params["sawyer"].right_ee_pos[:, 0] = info["pos"]
 params["sawyer"].right_ee_pos[:, 0] = T.quaternion_to_euler(info["quat"], "xyzw")
 
 
-goal = "(RobotAt sawyer robot_end_pose)"
+goal = "(InContactRobotTable sawyer)"
 solver = RobotSolver()
 plan, descr = p_mod_abs(
     hls, solver, domain, problem, goal=goal, debug=True, n_resamples=10

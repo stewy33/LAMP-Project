@@ -198,6 +198,7 @@ dp.add('LeftEEValid', ['Robot'])
 dp.add('RightEEValid', ['Robot'])
 dp.add('HeightBlock', ['Item', 'Item'])
 dp.add('AboveTable', ['Item'])
+dp.add('InContactRobotTable', ['Robot'])
 
 dom_str += dp.get_str() + '\n'
 
@@ -260,7 +261,7 @@ class Move(Action):
 
 class MoveSimple(Action):
     def __init__(self):
-        self.name = 'moveto'
+        self.name = 'moveto_pose'
         self.timesteps = 17 # 25
         end = self.timesteps - 1
         self.end = end
@@ -268,15 +269,35 @@ class MoveSimple(Action):
         self.pre = [\
             ('(RobotAt ?robot ?start)', '{}:{}'.format(0, -1)),
             ('(not (RobotAt ?robot ?end))', '{}:{}'.format(0, -1)),
-            # ('(forall (?obj - Item)\
-            #     (not (Obstructs ?robot ?obj)))', '{}:{}'.format(1, end-1)),
-            # ('(IsMP ?robot)', '{}:{}'.format(0, end-1)),
-            # ('(WithinJointLimit ?robot)', '{}:{}'.format(0, end)),
-            # ('(forall (?w - Obstacle) (not (RCollides ?robot ?w)))', '{}:{}'.format(1, end-1)),
+            ('(forall (?obj - Item)\
+                (not (Obstructs ?robot ?obj)))', '{}:{}'.format(1, end-1)),
+            ('(IsMP ?robot)', '{}:{}'.format(0, end-1)),
+            ('(WithinJointLimit ?robot)', '{}:{}'.format(0, end)),
+            ('(forall (?w - Obstacle) (not (RCollides ?robot ?w)))', '{}:{}'.format(1, end-1)),
         ]
         self.eff = [\
             (' (not (RobotAt ?robot ?start))', '{}:{}'.format(end, end-1)),
             ('(RobotAt ?robot ?end)', '{}:{}'.format(end, end-1))]
+
+class MoveToTabletop(Action):
+    def __init__(self):
+        self.name = 'moveto_pose_ontable'
+        self.timesteps = 17
+        end = self.timesteps - 1
+        self.end = end
+        self.args = '(?robot - Robot ?start - RobotPose ?end - RobotPose)'
+        self.pre = [\
+            ('(RobotAt ?robot ?start)', '{}:{}'.format(0, -1)),
+            ('(not (RobotAt ?robot ?end))', '{}:{}'.format(0, -1)),
+            ('(not (InContactRobotTable ?robot))', '{}:{}'.format(0, -1)),
+            ('(IsMP ?robot)', '{}:{}'.format(0, end-1)),
+            ('(WithinJointLimit ?robot)', '{}:{}'.format(0, end)),
+        ]
+        self.eff = [\
+            (' (not (RobotAt ?robot ?start))', '{}:{}'.format(end, end-1)),
+            ('(RobotAt ?robot ?end)', '{}:{}'.format(end, end-1)),
+            ('(InContactRobotTable ?robot)', '{}:{}'.format(end, end-1)),
+            ]
 
 
 class MoveLeft(Move):
@@ -701,15 +722,12 @@ class PutdownRight(Putdown):
             ('(NearApproachRight ?robot ?target)', '{0}:{0}'.format(self.end)),
             ])
 
-
-# actions = [MoveToGraspRight()]
 actions = [MoveSimple()]
 right_dom_str = dom_str
 for action in actions:
     right_dom_str += '\n\n'
     print(action.name)
     right_dom_str += action.to_str()
-
 # removes all the extra spaces
 right_dom_str = right_dom_str.replace('            ', '')
 right_dom_str = right_dom_str.replace('    ', '')
@@ -718,3 +736,16 @@ print(right_dom_str)
 f = open('opentamp/domains/robot_wiping_domain/right_wipe_moveto.domain', 'w+')
 f.write(right_dom_str)
 
+actions = [MoveToTabletop()]
+right_dom_str = dom_str
+for action in actions:
+    right_dom_str += '\n\n'
+    print(action.name)
+    right_dom_str += action.to_str()
+# removes all the extra spaces
+right_dom_str = right_dom_str.replace('            ', '')
+right_dom_str = right_dom_str.replace('    ', '')
+right_dom_str = right_dom_str.replace('    ', '')
+print(right_dom_str)
+f = open('opentamp/domains/robot_wiping_domain/right_wipe_movetotable.domain', 'w+')
+f.write(right_dom_str)

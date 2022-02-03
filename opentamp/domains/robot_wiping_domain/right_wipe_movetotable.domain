@@ -28,4 +28,4 @@ Derived Predicates: At, Item, Target; AtInit, Item, Reachable; Near, Item, Targe
 
 
 
-Action moveto_pose 17: (?robot - Robot ?start - RobotPose ?end - RobotPose) (and (RobotAt ?robot ?start) (not (RobotAt ?robot ?end)) (forall (?obj - Item)(not (Obstructs ?robot ?obj))) (IsMP ?robot) (WithinJointLimit ?robot) (forall (?w - Obstacle) (not (RCollides ?robot ?w))) )(and  (not (RobotAt ?robot ?start)) (RobotAt ?robot ?end) ) 0:-1 0:-1 1:15 0:15 0:16 1:15 16:15 16:15 
+Action moveto_pose_ontable 17: (?robot - Robot ?start - RobotPose ?end - RobotPose) (and (RobotAt ?robot ?start) (not (RobotAt ?robot ?end)) (not (InContactRobotTable ?robot)) (IsMP ?robot) (WithinJointLimit ?robot) )(and  (not (RobotAt ?robot ?start)) (RobotAt ?robot ?end) (InContactRobotTable ?robot) ) 0:-1 0:-1 0:-1 0:15 0:16 16:15 16:15 16:15 

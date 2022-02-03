@@ -73,10 +73,6 @@ def main():
     s += "Sawyer (name sawyer); "
 
     for item in ['milk', 'bread', 'cereal', 'can']:
-        s += "SawyerPose (name {}); ".format("{0}_grasp_begin".format(item))
-        s += "SawyerPose (name {}); ".format("{0}_grasp_end".format(item))
-        s += "SawyerPose (name {}); ".format("{0}_putdown_begin".format(item))
-        s += "SawyerPose (name {}); ".format("{0}_putdown_end".format(item))
         if item is 'can':
             item_type = 'Can'
         else:
@@ -87,6 +83,7 @@ def main():
 
     s += "SawyerPose (name {}); ".format("robot_init_pose")
     s += "SawyerPose (name {}); ".format("robot_end_pose")
+    s += "SawyerPose (name {}); ".format("robot_ontable_pose")
     s += "Obstacle (name {}) \n\n".format("table")
 
     s += "Init: "
@@ -112,10 +109,7 @@ def main():
         s += "(value {}_end_target {}), ".format(item, end_targets[ind])
         s += "(rotation {}_end_target [0, 0, 0]), ".format(item)
 
-        s += get_undefined_robot_pose_str("{0}_grasp_begin".format(item))
-        s += get_undefined_robot_pose_str("{0}_grasp_end".format(item))
-        s += get_undefined_robot_pose_str("{0}_putdown_begin".format(item))
-        s += get_undefined_robot_pose_str("{0}_putdown_end".format(item))
+    s += get_undefined_robot_pose_str("robot_ontable_pose")
     s += get_sawyer_str('sawyer', R_ARM_INIT, OPEN_GRIPPER, SAWYER_INIT_POSE)
     s += get_sawyer_pose_str('robot_init_pose', R_ARM_INIT, OPEN_GRIPPER, SAWYER_INIT_POSE)
     s += get_sawyer_end_pose_str('robot_end_pose')

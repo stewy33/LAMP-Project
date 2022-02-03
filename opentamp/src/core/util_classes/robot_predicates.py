@@ -3134,7 +3134,7 @@ class RCollides(CollisionPredicate):
             attr_inds[OrderedDict]: robot attribute indices
             set_robot_poses[Function]:Function that sets robot's poses
             set_active_dof_inds[Function]:Function that sets robot's active dof indices
-            RCOLLIDES_OPT_COEFF[Float]: Obstructs_holding coeffitions, used during optimazation problem
+            RCOLLIDES_OPT_COEFF[Float]: Obstructs_holding coeffitions, used during optimization problem
     """
     #@profile
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
@@ -3254,6 +3254,7 @@ class RSelfCollides(CollisionPredicate):
             return self.neg_expr
         else:
             return None
+
 
 class BasketLevel(ExprPredicate):
     '''
@@ -3518,6 +3519,7 @@ class HeightBlock(ExprPredicate):
       
         return not negated
 
+
 class AboveTable(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None):
         assert len(params) == 1
@@ -3533,6 +3535,24 @@ class AboveTable(ExprPredicate):
         super(AboveTable, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
         self.spacial_anchor = True
         self._init_include = False
+
+
+class InContactRobotTable(ExprPredicate):
+    def __init__(self, name, params, expected_param_types, env=None):
+        assert len(params) == 1
+        self.obj, = params
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype=np.int))])])
+        A = -np.ones((1,1))
+        z = 0.95
+        b = z * np.ones((1,1))
+        val = np.zeros((1,1))
+        aff_e = AffExpr(A, b)
+        e = EqExpr(aff_e, val)
+
+        super(InContactRobotTable, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
+        self.spacial_anchor = True
+        self._init_include = False
+
 
 class LiftedAboveTable(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None):
