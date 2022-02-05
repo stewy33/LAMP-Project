@@ -2074,6 +2074,12 @@ class InGripper(PosePredicate):
         if negated: return None, None
         return robot_sampling.resample_in_gripper(self, negated, t, plan)
 
+class InContactRobotTableSurface(InGripper):
+    # TODO: finish; basically override the stacked_f and stacked_grad functions and
+    # just take the last element, but make sure the tensor dims are the same
+    pass
+
+
 class InGripperLeft(InGripper):
     def __init__(self, name, params, expected_param_types, env = None, debug = False):
         super(InGripperLeft, self).__init__(name, params, expected_param_types, env, debug)
@@ -3533,23 +3539,6 @@ class AboveTable(ExprPredicate):
         e = LEqExpr(aff_e, val)
 
         super(AboveTable, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
-        self.spacial_anchor = True
-        self._init_include = False
-
-
-class InContactRobotTable(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
-        assert len(params) == 1
-        self.obj, = params
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype=np.int))])])
-        A = -np.ones((1,1))
-        z = 0.95
-        b = z * np.ones((1,1))
-        val = np.zeros((1,1))
-        aff_e = AffExpr(A, b)
-        e = EqExpr(aff_e, val)
-
-        super(InContactRobotTable, self).__init__(name, e, attr_inds, params, expected_param_types, priority=-2)
         self.spacial_anchor = True
         self._init_include = False
 

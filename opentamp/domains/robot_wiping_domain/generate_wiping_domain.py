@@ -23,6 +23,8 @@ Predicates Import Path: core.util_classes.robot_predicates
 
 """
 
+# TODO: add a table object which is a type of Box and put it at the right location!
+
 # Automated handling to setup robot types
 r_types = ""
 for r in robots:
