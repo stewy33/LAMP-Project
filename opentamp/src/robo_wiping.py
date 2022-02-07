@@ -151,7 +151,7 @@ params["sawyer"].right_ee_pos[:, 0] = info["pos"]
 params["sawyer"].right_ee_pos[:, 0] = T.quaternion_to_euler(info["quat"], "xyzw")
 
 
-goal = "(InContactRobotTable sawyer)"
+goal = "(InContactRobotTable sawyer table)"
 solver = RobotSolver()
 plan, descr = p_mod_abs(
     hls, solver, domain, problem, goal=goal, debug=True, n_resamples=10

@@ -2074,10 +2074,42 @@ class InGripper(PosePredicate):
         if negated: return None, None
         return robot_sampling.resample_in_gripper(self, negated, t, plan)
 
-class InContactRobotTableSurface(InGripper):
-    # TODO: finish; basically override the stacked_f and stacked_grad functions and
-    # just take the last element, but make sure the tensor dims are the same
-    pass
+class InContactRobotTable(InGripper):
+    """
+    Format: InContactRobotTable, Robot, Item
+
+    Robot related
+
+    Requires:
+        attr_inds[OrderedDict]: robot attribute indices
+        set_robot_poses[Function]:Function that sets robot's poses
+        get_robot_info[Function]:Function that returns robot's transformations and arm indices
+        eval_f[Function]:Function returns predicate value
+        eval_grad[Function]:Function returns predicate gradient
+        coeff[Float]:In Gripper coeffitions, used during optimazation
+        opt_coeff[Float]:In Gripper coeffitions, used during optimazation
+    """
+    #@profile
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
+        super(InContactRobotTable, self).__init__(name, params, expected_param_types, env=env, debug=debug)
+        self.spacial_anchor = True
+        self._init_include = False
+
+    def stacked_f(self, x):
+        import ipdb; ipdb.set_trace()
+        if self.eval_dim == 3:
+            return self.coeff * self.pos_check_f(x, self.rel_pt)
+        else:
+            return np.vstack([self.coeff * self.pos_check_f(x, self.rel_pt), self.rot_coeff * self.ee_rot_check_f(x, robot_off=self.inv_mats[self.arm])])
+
+    def stacked_grad(self, x):
+        if self.eval_dim == 3:
+            return self.coeff * self.pos_check_jac(x, self.rel_pt)
+        else:
+            return np.vstack([self.coeff * self.pos_check_jac(x, self.rel_pt), self.rot_coeff * self.ee_rot_check_jac(x, robot_off=self.inv_mats[self.arm])])
+
+    def resample(self, negated, t, plan):
+        return None, None  # There is no valid resample
 
 
 class InGripperLeft(InGripper):

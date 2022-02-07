@@ -23,8 +23,6 @@ Predicates Import Path: core.util_classes.robot_predicates
 
 """
 
-# TODO: add a table object which is a type of Box and put it at the right location!
-
 # Automated handling to setup robot types
 r_types = ""
 for r in robots:
@@ -200,7 +198,7 @@ dp.add('LeftEEValid', ['Robot'])
 dp.add('RightEEValid', ['Robot'])
 dp.add('HeightBlock', ['Item', 'Item'])
 dp.add('AboveTable', ['Item'])
-dp.add('InContactRobotTable', ['Robot'])
+dp.add('InContactRobotTable', ['Robot', 'Obstacle'])
 
 dom_str += dp.get_str() + '\n'
 
@@ -287,18 +285,18 @@ class MoveToTabletop(Action):
         self.timesteps = 17
         end = self.timesteps - 1
         self.end = end
-        self.args = '(?robot - Robot ?start - RobotPose ?end - RobotPose)'
+        self.args = '(?robot - Robot ?start - RobotPose ?end - RobotPose ?obs - Obstacle)'
         self.pre = [\
             ('(RobotAt ?robot ?start)', '{}:{}'.format(0, -1)),
             ('(not (RobotAt ?robot ?end))', '{}:{}'.format(0, -1)),
-            ('(not (InContactRobotTable ?robot))', '{}:{}'.format(0, -1)),
+            ('(not (InContactRobotTable ?robot ?obs))', '{}:{}'.format(0, -1)),
             ('(IsMP ?robot)', '{}:{}'.format(0, end-1)),
             ('(WithinJointLimit ?robot)', '{}:{}'.format(0, end)),
         ]
         self.eff = [\
             (' (not (RobotAt ?robot ?start))', '{}:{}'.format(end, end-1)),
             ('(RobotAt ?robot ?end)', '{}:{}'.format(end, end-1)),
-            ('(InContactRobotTable ?robot)', '{}:{}'.format(end, end-1)),
+            ('(InContactRobotTable ?robot ?obs)', '{}:{}'.format(end, end-1)),
             ]
 
 
