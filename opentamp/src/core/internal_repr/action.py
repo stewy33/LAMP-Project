@@ -43,6 +43,9 @@ class Action(object):
                     continue
                 if (incl_negated or not negated) and pred.priority <= priority and not pred.test(t, negated=negated, tol=tol):
                     failed.append((negated, pred, t))
+            
+            if pred_d == self.preds[-1]:
+                import ipdb; ipdb.set_trace()
         return failed
 
     def get_failed_preds_by_type(self, active_ts=None, priority=MAX_PRIORITY, tol=1e-3):

@@ -2096,7 +2096,6 @@ class InContactRobotTable(InGripper):
         self._init_include = False
 
     def stacked_f(self, x):
-        import ipdb; ipdb.set_trace()
         if self.eval_dim == 3:
             return self.coeff * self.pos_check_f(x, self.rel_pt)
         else:
