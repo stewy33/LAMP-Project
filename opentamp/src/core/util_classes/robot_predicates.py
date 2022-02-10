@@ -2096,16 +2096,21 @@ class InContactRobotTable(InGripper):
         self._init_include = False
 
     def stacked_f(self, x):
+        # NOTE: We override this because we only care about contact in the z-direction, so 
+        # we only return the last element!
         if self.eval_dim == 3:
-            return self.coeff * self.pos_check_f(x, self.rel_pt)
+            return self.coeff * self.pos_check_f(x, self.rel_pt)[-1,None]
         else:
-            return np.vstack([self.coeff * self.pos_check_f(x, self.rel_pt), self.rot_coeff * self.ee_rot_check_f(x, robot_off=self.inv_mats[self.arm])])
+            raise ValueError('stacked_f case for self.eval_dim being > 3 has not been handled yet')
+            # return np.vstack([self.coeff * self.pos_check_f(x, self.rel_pt), self.rot_coeff * self.ee_rot_check_f(x, robot_off=self.inv_mats[self.arm])])
 
     def stacked_grad(self, x):
         if self.eval_dim == 3:
+            import ipdb; ipdb.set_trace()
             return self.coeff * self.pos_check_jac(x, self.rel_pt)
         else:
-            return np.vstack([self.coeff * self.pos_check_jac(x, self.rel_pt), self.rot_coeff * self.ee_rot_check_jac(x, robot_off=self.inv_mats[self.arm])])
+            raise ValueError('stacked_grad case for self.eval_dim being > 3 has not been handled yet')
+            # return np.vstack([self.coeff * self.pos_check_jac(x, self.rel_pt), self.rot_coeff * self.ee_rot_check_jac(x, robot_off=self.inv_mats[self.arm])])
 
     def resample(self, negated, t, plan):
         return None, None  # There is no valid resample

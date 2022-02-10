@@ -141,7 +141,7 @@ class LLParam(object):
         for index, var in np.ndenumerate(grb_vars):
             try:
                 value[index] = var.X
-            except grb.GurobiError:
+            except (grb.GurobiError, AttributeError):
                 value[index] = np.nan
         return value
 
