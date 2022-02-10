@@ -14,7 +14,7 @@ EE_ROT = [3.139, 0.00, -2.182]
 ON_TABLE_POS = [0.4, -0.15, 0.912]
 
 TABLE_GEOM = [1.23/2, 2.45/2, 0.97/2]
-TABLE_POS = [1.23/2-0.1, 0, 0.91/2]
+TABLE_POS = [1.23/2-0.1, 0, 0.912 - TABLE_GEOM[-1]]
 TABLE_ROT = [0,0,0]
 
 def get_sawyer_pose_str(name, RArm = R_ARM_INIT, G = OPEN_GRIPPER, Pos = SAWYER_INIT_POSE):
