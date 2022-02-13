@@ -98,6 +98,7 @@ def main():
 
     s += "Invariants: "
     s += "(StationaryBase sawyer), "
+    s += "(Stationary table), "
     s += "(WithinJointLimit sawyer), "
     s += "\n\n"
 

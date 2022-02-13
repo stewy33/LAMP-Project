@@ -8,5 +8,5 @@ Init: (right robot_ontable_pose undefined), (right_ee_pos robot_ontable_pose und
 
 Goal: (RobotAt sawyer robot_end_pose)
 
-Invariants: (StationaryBase sawyer), (WithinJointLimit sawyer), 
+Invariants: (StationaryBase sawyer), (Stationary table), (WithinJointLimit sawyer), 
 
