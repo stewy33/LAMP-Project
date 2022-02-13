@@ -274,7 +274,7 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
             elif a_name.find("moveto_pose_ontable") >= 0:
                 info = robot_body.fwd_kinematics(arm)
                 (x, y) = info['pos'][:2]
-                z = obj.pose[-1] + obj.geom.grasp_pt[-1]
+                z = obj.pose[-1] + obj.geom.height
                 pos = np.array([x, y, z])
                 pose = self.vertical_gripper_with_obj_pose_sampler(
                     robot,
