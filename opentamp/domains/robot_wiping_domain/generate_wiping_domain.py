@@ -198,7 +198,7 @@ dp.add('LeftEEValid', ['Robot'])
 dp.add('RightEEValid', ['Robot'])
 dp.add('HeightBlock', ['Item', 'Item'])
 dp.add('AboveTable', ['Item'])
-dp.add('InContactRobotTable', ['Robot', 'Obstacle'])
+dp.add('InContactRobotTable', ['Robot', 'Box'])
 
 dom_str += dp.get_str() + '\n'
 
@@ -285,18 +285,18 @@ class MoveToTabletop(Action):
         self.timesteps = 17
         end = self.timesteps - 1
         self.end = end
-        self.args = '(?robot - Robot ?start - RobotPose ?end - RobotPose ?obs - Obstacle)'
+        self.args = '(?robot - Robot ?table - Box ?start - RobotPose ?end - RobotPose)'
         self.pre = [\
-            ('(RobotAt ?robot ?start)', '{}:{}'.format(0, 1)),
+            ('(RobotAt ?robot ?start)', '{}:{}'.format(0, -1)),
             ('(not (RobotAt ?robot ?end))', '{}:{}'.format(0, 1)),
-            ('(not (InContactRobotTable ?robot ?obs))', '{}:{}'.format(0, 1)),
+            ('(not (InContactRobotTable ?robot ?table))', '{}:{}'.format(0, -1)),
             ('(IsMP ?robot)', '{}:{}'.format(0, end-1)),
             ('(WithinJointLimit ?robot)', '{}:{}'.format(0, end)),
         ]
         self.eff = [\
-            (' (not (RobotAt ?robot ?start))', '{}:{}'.format(end-1, end)),
-            ('(RobotAt ?robot ?end)', '{}:{}'.format(end-1, end)),
-            ('(InContactRobotTable ?robot ?obs)', '{}:{}'.format(end-1, end)),
+            (' (not (RobotAt ?robot ?start))', '{}:{}'.format(end, end-1)),
+            ('(RobotAt ?robot ?end)', '{}:{}'.format(end, end-1)),
+            ('(InContactRobotTable ?robot ?table)', '{}:{}'.format(end, end)),
             ]
 
 

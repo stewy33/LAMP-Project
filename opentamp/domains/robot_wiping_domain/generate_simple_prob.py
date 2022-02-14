@@ -14,7 +14,7 @@ EE_ROT = [3.139, 0.00, -2.182]
 ON_TABLE_POS = [0.4, -0.15, 0.912]
 
 TABLE_GEOM = [1.23/2, 2.45/2, 0.97/2]
-TABLE_POS = [1.23/2-0.1, 0, 0.912 - TABLE_GEOM[-1]]
+TABLE_POS = [1.23/2-0.1, 0, 0.8 - TABLE_GEOM[-1]]
 TABLE_ROT = [0,0,0]
 
 def get_sawyer_pose_str(name, RArm = R_ARM_INIT, G = OPEN_GRIPPER, Pos = SAWYER_INIT_POSE):
@@ -84,7 +84,8 @@ def main():
     s += "SawyerPose (name {}); ".format("robot_init_pose")
     s += "SawyerPose (name {}); ".format("robot_end_pose")
     s += "SawyerPose (name {}); ".format("robot_ontable_pose")
-    s += "Obstacle (name {}) \n\n".format("table")
+    s += "Obstacle (name {}); ".format("table_obs")
+    s += "Box (name {}) \n\n".format("table")
 
     s += "Init: "
     dims = [[0.0225, 0.0225, 0.06], [0.02, 0.02, 0.02], [0.05, 0.02, 0.065], [0.02, 0.04]]
@@ -116,7 +117,10 @@ def main():
 
     s += "(geom table {}), ".format(TABLE_GEOM)
     s += "(pose table {}), ".format(TABLE_POS)
-    s += "(rotation table {}); ".format(TABLE_ROT)
+    s += "(rotation table {}), ".format(TABLE_ROT)
+    s += "(geom table_obs {}), ".format(TABLE_GEOM)
+    s += "(pose table_obs {}), ".format(TABLE_POS)
+    s += "(rotation table_obs {}); ".format(TABLE_ROT)
 
     for item in ['milk', 'bread', 'can', 'cereal']:
         s += "(At {0} {0}_init_target), ".format(item)
@@ -132,15 +136,14 @@ def main():
     s += "(HeightBlock bread can), "
     s += "(IsMP sawyer), "
     s += "(WithinJointLimit sawyer), "
-    s += "(StationaryW table) \n\n"
+    s += "\n\n"
 
     s += "Goal: {}\n\n".format(GOAL)
 
     s += "Invariants: "
     s += "(StationaryBase sawyer), "
-    #s += "(EEIsMP sawyer), "
-    #s += "(RightGripperDownRot sawyer), "
-    #s += "(RightEEValid sawyer), "
+    s += "(Stationary table), "
+    s += "(WithinJointLimit sawyer), "
     s += "\n\n"
 
     with open(filename, "w") as f:

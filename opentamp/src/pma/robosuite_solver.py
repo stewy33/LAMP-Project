@@ -105,19 +105,23 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
         robot_body = robot.openrave_body
         robot_body.set_from_param(robot, start_ts)
 
-        offset = (
-            obj.geom.grasp_point if hasattr(obj.geom, "grasp_point") else np.zeros(3)
-        )
-        if obj.is_symbol():
-            target_loc = obj.value[:, 0] + disp + offset
+        if isinstance(obj, np.ndarray):
+            target_loc = obj + disp
+            euler = np.zeros(3)
         else:
-            target_loc = obj.pose[:, start_ts] + disp + offset
+            offset = (
+                obj.geom.grasp_point if hasattr(obj.geom, "grasp_point") else np.zeros(3)
+            )
+            if obj.is_symbol():
+                target_loc = obj.value[:, 0] + disp + offset
+                euler = obj.rotation[:, 0]
+            else:
+                target_loc = obj.pose[:, start_ts] + disp + offset
+                euler = obj.rotation[:, ts[0]]
 
         gripper_axis = robot.geom.get_gripper_axis(arm)
         target_axis = [0, 0, -1]
         quat = OpenRAVEBody.quat_from_v1_to_v2(gripper_axis, target_axis)
-
-        euler = obj.rotation[:, ts[0]] if not obj.is_symbol() else obj.rotation[:, 0]
         obj_quat = T.euler_to_quaternion(euler, "xyzw")
         robot_mat = T.quat2mat(quat)
         obj_mat = T.quat2mat(obj_quat)
@@ -135,18 +139,20 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
             iks = robot_body.get_ik_from_pose(target_loc, quat, arm)
             rand = not len(iks)
             attempt += 1
+
         if not len(iks):
             return None
+
         arm_pose = np.array(iks).reshape((-1, 1))
         pose = {arm: arm_pose}
         gripper = robot.geom.get_gripper(arm)
         if gripper is not None:
-            pose[gripper] = (
-                robot.geom.get_gripper_open_val()
-                if gripper_open
-                else robot.geom.get_gripper_closed_val()
-            )
+            grip_val = robot.geom.get_gripper_closed_val()
+            if gripper_open:
+                grip_val = robot.geom.get_gripper_open_val()
+            pose[gripper] = (grip_val)
             pose[gripper] = np.array(pose[gripper]).reshape((-1, 1))
+
         for aux_arm in robot.geom.arms:
             if aux_arm == arm:
                 continue
@@ -264,6 +270,22 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
                     (st, et),
                     rand=(rand or (i > 0)),
                     null_zero=zero_null,
+                )
+            elif a_name.find("moveto_pose_ontable") >= 0:
+                info = robot_body.fwd_kinematics(arm)
+                (x, y) = info['pos'][:2]
+                # indexing is -1,0 below because we want the last arg (-1) 
+                # corresponding to z and the 0th timestep value of that
+                z = obj.pose[-1,0] + obj.geom.height
+                pos = np.array([x, y, z])
+                pose = self.vertical_gripper_with_obj_pose_sampler(
+                    robot,
+                    arm,
+                    pos,
+                    gripper_open,
+                    (st, et),
+                    rand=False,
+                    disp=np.zeros(3),
                 )
             elif a_name.find("moveto_pose") >= 0:
                 # In this case, 'obj' is actually a start_pose

@@ -2094,6 +2094,7 @@ class InContactRobotTable(InGripper):
         super(InContactRobotTable, self).__init__(name, params, expected_param_types, env=env, debug=debug)
         self.spacial_anchor = True
         self._init_include = False
+        self.rel_pt = np.array([0, 0, params[1].geom.height])
 
     def stacked_f(self, x):
         # NOTE: We override this because we only care about contact in the z-direction, so 
@@ -2106,8 +2107,7 @@ class InContactRobotTable(InGripper):
 
     def stacked_grad(self, x):
         if self.eval_dim == 3:
-            import ipdb; ipdb.set_trace()
-            return self.coeff * self.pos_check_jac(x, self.rel_pt)
+            return self.coeff * self.pos_check_jac(x, self.rel_pt)[-1,None]
         else:
             raise ValueError('stacked_grad case for self.eval_dim being > 3 has not been handled yet')
             # return np.vstack([self.coeff * self.pos_check_jac(x, self.rel_pt), self.rot_coeff * self.ee_rot_check_jac(x, robot_off=self.inv_mats[self.arm])])
