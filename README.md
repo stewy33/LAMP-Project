@@ -239,4 +239,11 @@ What's going on here:
 - `grad` will return the jacobian of `f` with respect to the state vector, or more precisely an array of the gradients of each output of `f`. `grad` can only return a 2-d array of shape `(len(f(x)), len(x))` such that `grad(x).dot(x) + f(x)` is valid
 - `e` is an equality constraint of the form `f(x)=0`; `angle_expr` provides both `f` and it's gradient `grad` to the solver
 
+## Debugging Tips
+### Installing `sco-py` locally and placing breakpoints within it
+It is sometimes useful to be able to place breakpoints within `sco-py` code to inspect and debug issues with motion planning problems. To do so, follow these steps:
+1. Install `sco-py` locally `https://github.com/Algorithmic-Alignment-Lab/sco_py.git`
+1. In the `pyproject.toml` file within the opentamp repo, replace the line `sco-py = { git = "https://github.com/Algorithmic-Alignment-Lab/sco.git", branch = "main" }` with `sco-py = { path = "<relative-path-to-sco>", develop=true }`
+1. run `poetry update sco-py` and then `poetry install`
 
+You can now place breakpoints within `sco-py` code! Be sure to revert `pyproject.toml` when you make a pull request.

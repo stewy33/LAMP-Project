@@ -45,7 +45,6 @@ def theta_error(cur_quat, next_quat):
 # controller_config['kp'] = 500
 # controller_config['kp'] = [750, 750, 500, 5000, 5000, 5000]
 
-cur_objs = ["cereal", "milk", "can", "bread"]
 ctrl_mode = "JOINT_POSITION"
 true_mode = "JOINT"
 
@@ -67,7 +66,7 @@ else:
 
 visual = len(os.environ.get("DISPLAY", "")) > 0
 has_render = visual
-obj_mode = 0 if len(cur_objs) > 1 else 2
+obj_mode = 2
 env = robosuite.make(
     "Wipe",
     robots=["Sawyer"],             # load a Sawyer robot
@@ -113,26 +112,9 @@ visual = len(os.environ.get('DISPLAY', '')) > 0
 problem = parse_problem_config.ParseProblemConfig.parse(p_c, domain, None, use_tf=True, sess=None, visual=visual)
 params = problem.init_state.params
 body_ind = env.mjpy_model.body_name2id("robot0_base")
+
 # Resetting the initial state to specific values
 params["sawyer"].pose[:, 0] = env.sim.data.body_xpos[body_ind]
-params["bread"].pose[:, 0] = [0.1975, 0.1575, 0.845]
-params["cereal"].pose[:, 0] = [0.0025, 0.4025, 0.9]
-params["can"].pose[:, 0] = [0.1975, 0.4025, 0.86]
-params["milk"].pose[:, 0] = [0.002, 0.1575, 0.885]
-
-inds = {}
-offsets = {"cereal": 0.04, "milk": 0.02, "bread": 0.01, "can": 0.02}
-
-
-params["milk_init_target"].value[:, 0] = params["milk"].pose[:, 0]
-params["milk_init_target"].rotation[:, 0] = params["milk"].rotation[:, 0]
-params["cereal_init_target"].value[:, 0] = params["cereal"].pose[:, 0]
-params["cereal_init_target"].rotation[:, 0] = params["cereal"].rotation[:, 0]
-params["can_init_target"].value[:, 0] = params["can"].pose[:, 0]
-params["can_init_target"].rotation[:, 0] = params["can"].rotation[:, 0]
-params["bread_init_target"].value[:, 0] = params["bread"].pose[:, 0]
-params["bread_init_target"].rotation[:, 0] = params["bread"].rotation[:, 0]
-
 
 jnts = params["sawyer"].geom.jnt_names["right"]
 jnts = ["robot0_" + jnt for jnt in jnts]
@@ -156,7 +138,6 @@ solver = RobotSolver()
 plan, descr = p_mod_abs(
     hls, solver, domain, problem, goal=goal, debug=True, n_resamples=10
 )
-
 
 if len(sys.argv) > 1 and sys.argv[1] == "end":
     sys.exit(0)
@@ -184,16 +165,6 @@ for t in range(plan.horizon):
 grip_ind = env.mjpy_model.site_name2id("gripper0_grip_site")
 hand_ind = env.mjpy_model.body_name2id("robot0_right_hand")
 env.reset()
-for obj in inds:
-    ind = inds[obj]
-    env.sim.data.qpos[ind : ind + 3] = plan.params[obj].pose[:, 0] + [
-        0,
-        0,
-        offsets[obj],
-    ]
-    env.sim.data.qpos[ind + 3 : ind + 7] = T.euler_to_quaternion(
-        plan.params[obj].rotation[:, 0], "wxyz"
-    )
 env.sim.data.qpos[:7] = params["sawyer"].right[:, 0]
 env.sim.data.qacc[:] = 0
 env.sim.data.qvel[:] = 0
