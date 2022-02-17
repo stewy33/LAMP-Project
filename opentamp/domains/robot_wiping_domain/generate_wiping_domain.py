@@ -199,6 +199,7 @@ dp.add('RightEEValid', ['Robot'])
 dp.add('HeightBlock', ['Item', 'Item'])
 dp.add('AboveTable', ['Item'])
 dp.add('InContactRobotTable', ['Robot', 'Box'])
+dp.add('WipedSurface', ['Robot'])
 
 dom_str += dp.get_str() + '\n'
 
@@ -288,7 +289,7 @@ class MoveToTabletop(Action):
         self.args = '(?robot - Robot ?table - Box ?start - RobotPose ?end - RobotPose)'
         self.pre = [\
             ('(RobotAt ?robot ?start)', '{}:{}'.format(0, -1)),
-            ('(not (RobotAt ?robot ?end))', '{}:{}'.format(0, 1)),
+            ('(not (RobotAt ?robot ?end))', '{}:{}'.format(0, -1)),
             ('(not (InContactRobotTable ?robot ?table))', '{}:{}'.format(0, -1)),
             ('(IsMP ?robot)', '{}:{}'.format(0, end-1)),
             ('(WithinJointLimit ?robot)', '{}:{}'.format(0, end)),
@@ -297,6 +298,26 @@ class MoveToTabletop(Action):
             (' (not (RobotAt ?robot ?start))', '{}:{}'.format(end, end-1)),
             ('(RobotAt ?robot ?end)', '{}:{}'.format(end, end-1)),
             ('(InContactRobotTable ?robot ?table)', '{}:{}'.format(end, end)),
+            ]
+
+class MoveAlongTabletop(Action):
+    def __init__(self):
+        self.name = 'wipe_table'
+        self.timesteps = 17
+        end = self.timesteps - 1
+        self.end = end
+        self.args = '(?robot - Robot ?table - Box ?start - RobotPose ?end - RobotPose)'
+        self.pre = [\
+            ('(RobotAt ?robot ?start)', '{}:{}'.format(0, -1)),
+            ('(not (RobotAt ?robot ?end))', '{}:{}'.format(0, -1)),
+            ('(InContactRobotTable ?robot ?table)', '{}:{}'.format(0, end)),
+            ('(IsMP ?robot)', '{}:{}'.format(0, end-1)),
+            ('(WithinJointLimit ?robot)', '{}:{}'.format(0, end)),
+        ]
+        self.eff = [\
+            (' (not (RobotAt ?robot ?start))', '{}:{}'.format(end, end-1)),
+            ('(RobotAt ?robot ?end)', '{}:{}'.format(end, end-1)),
+            ('(WipedSurface ?robot)', '{}:{}'.format(end, end-1))
             ]
 
 
@@ -736,7 +757,7 @@ print(right_dom_str)
 f = open('opentamp/domains/robot_wiping_domain/right_wipe_moveto.domain', 'w+')
 f.write(right_dom_str)
 
-actions = [MoveToTabletop()]
+actions = [MoveToTabletop(), MoveAlongTabletop()]
 right_dom_str = dom_str
 for action in actions:
     right_dom_str += '\n\n'

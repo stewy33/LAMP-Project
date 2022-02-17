@@ -1521,6 +1521,30 @@ class WithinJointLimit(RobotPredicate):
         self.spacial_anchor = False
         self._nonrollout = True
 
+class WipedSurface(RobotPredicate):
+    """
+        Format: WipedSurface Robot
+
+        Robot related
+
+        Requires:
+            attr_inds[OrderedDict]: robot attribute indices
+    """
+    #@profile
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
+        self._env = env
+        self.robot, = params
+        attrs = self.robot.geom.arms + ["pose", "rotation"] + self.robot.geom.grippers
+        attr_inds, attr_dim = init_robot_pred(self, self.robot, attrs={self.robot: attrs})
+
+        self._param_to_body = {self.robot: self.lazy_spawn_or_body(self.robot, self.robot.name, self.robot.geom)}
+
+        A, b, val = self.setup_mov_limit_check()
+        e = LEqExpr(AffExpr(A, b), val)
+        super(WipedSurface, self).__init__(name, e, attr_inds, params, expected_param_types, priority = -2)
+        self.spacial_anchor = False
+        self._nonrollout = True
+
 class Stationary(ExprPredicate):
     """
         Format: Stationary, Can
