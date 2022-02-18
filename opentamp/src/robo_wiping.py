@@ -102,8 +102,8 @@ env.sim.forward()
 
 bt_ll.DEBUG = True
 openrave_bodies = None
-domain_fname = os.getcwd() + "/opentamp/domains/robot_wiping_domain/right_wipe_movetotable.domain"
-prob = os.getcwd() + "/opentamp/domains/robot_wiping_domain/probs/simple_move_prob.prob"
+domain_fname = os.getcwd() + "/opentamp/domains/robot_wiping_domain/right_wipe_onlytable.domain"
+prob = os.getcwd() + "/opentamp/domains/robot_wiping_domain/probs/simple_move_onlytable_prob.prob"
 d_c = main.parse_file_to_dict(domain_fname)
 domain = parse_domain_config.ParseDomainConfig.parse(d_c)
 hls = FFSolver(d_c)

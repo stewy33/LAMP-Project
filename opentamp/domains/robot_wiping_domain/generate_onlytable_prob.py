@@ -1,6 +1,6 @@
 # SEED = 1234
 NUM_PROBS = 1
-filename = "opentamp/domains/robot_wiping_domain/probs/simple_move_prob.prob"
+filename = "opentamp/domains/robot_wiping_domain/probs/simple_move_onlytable_prob.prob"
 GOAL = "(RobotAt sawyer robot_end_pose)"
 
 
@@ -72,15 +72,6 @@ def main():
     s += "Objects: "
     s += "Sawyer (name sawyer); "
 
-    for item in ['milk', 'bread', 'cereal', 'can']:
-        if item is 'can':
-            item_type = 'Can'
-        else:
-            item_type = 'Box'
-        s += "{} (name {}); ".format(item_type, item)
-        s += "{}Target (name {}_init_target); ".format(item_type, item)
-        s += "{}Target (name {}_end_target); ".format(item_type, item)
-
     s += "SawyerPose (name {}); ".format("robot_init_pose")
     s += "SawyerPose (name {}); ".format("robot_end_pose")
     s += "SawyerPose (name {}); ".format("robot_ontable_pose")
@@ -88,27 +79,6 @@ def main():
     s += "Box (name {}) \n\n".format("table")
 
     s += "Init: "
-    dims = [[0.0225, 0.0225, 0.06], [0.02, 0.02, 0.02], [0.05, 0.02, 0.065], [0.02, 0.04]]
-    s += "(geom milk {0}), ".format(dims[0])
-    s += "(geom bread {0}), ".format(dims[1])
-    s += "(geom cereal {0}), ".format(dims[2])
-    s += "(geom can {0} {1}), ".format(dims[3][0], dims[3][1])
-    s += "(geom milk_end_target {0}), ".format(dims[0])
-    s += "(geom bread_end_target {0}), ".format(dims[1])
-    s += "(geom cereal_end_target {0}), ".format(dims[2])
-    s += "(geom can_end_target {0} {1}), ".format(dims[3][0], dims[3][1])
-    s += "(geom milk_init_target {0}), ".format(dims[0])
-    s += "(geom bread_init_target {0}), ".format(dims[1])
-    s += "(geom cereal_init_target {0}), ".format(dims[2])
-    s += "(geom can_init_target {0} {1}), ".format(dims[3][0], dims[3][1])
-    end_targets = [[0.0025, 0.1575, 0.885], [0.1975, 0.1575, 0.845], [0.0025, 0.4025, 0.9], [0.1975, 0.4025, 0.86]]
-    for ind, item in enumerate(['milk', 'bread', 'cereal', 'can']):
-        s += "(pose {0} {1}), ".format(item, [0, 0, 0])
-        s += "(rotation {0} {1}), ".format(item, [0, 0, 0])
-        s += "(value {0}_init_target [0, 0, 0]), ".format(item)
-        s += "(rotation {0}_init_target [0, 0, 0]), ".format(item)
-        s += "(value {}_end_target {}), ".format(item, end_targets[ind])
-        s += "(rotation {}_end_target [0, 0, 0]), ".format(item)
 
     s += get_undefined_robot_pose_str("robot_ontable_pose")
     s += get_sawyer_str('sawyer', R_ARM_INIT, OPEN_GRIPPER, SAWYER_INIT_POSE)
@@ -122,18 +92,8 @@ def main():
     s += "(pose table_obs {}), ".format(TABLE_POS)
     s += "(rotation table_obs {}); ".format(TABLE_ROT)
 
-    for item in ['milk', 'bread', 'can', 'cereal']:
-        s += "(At {0} {0}_init_target), ".format(item)
-        s += "(AtInit {0} {0}_init_target), ".format(item)
-        s += "(Near {0} {0}_init_target), ".format(item)
     s += "(RobotAt sawyer robot_init_pose),"
     s += "(StationaryBase sawyer), "
-    s += "(HeightBlock bread cereal), "
-    s += "(HeightBlock can cereal), "
-    s += "(HeightBlock milk cereal), "
-    s += "(HeightBlock bread milk), "
-    s += "(HeightBlock can milk), "
-    s += "(HeightBlock bread can), "
     s += "(IsMP sawyer), "
     s += "(WithinJointLimit sawyer), "
     s += "\n\n"
