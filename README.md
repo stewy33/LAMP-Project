@@ -240,6 +240,9 @@ What's going on here:
 - `e` is an equality constraint of the form `f(x)=0`; `angle_expr` provides both `f` and it's gradient `grad` to the solver
 
 ## Debugging Tips
+### Debugging Task Planning failures
+If task planning is failing, it's a good idea to check the `temp/` folder under the main repository. In particular, `temp/_temp_prob.output` will show the output of running [Fast Forward](https://planning.wiki/ref/planners/ff) on the problem specified, which can help catch subtle issues like if the goal is already achieved, or impossible, etc.
+
 ### Installing `sco-py` locally and placing breakpoints within it
 It is sometimes useful to be able to place breakpoints within `sco-py` code to inspect and debug issues with motion planning problems. To do so, follow these steps:
 1. Install `sco-py` locally `https://github.com/Algorithmic-Alignment-Lab/sco_py.git`
@@ -247,3 +250,4 @@ It is sometimes useful to be able to place breakpoints within `sco-py` code to i
 1. run `poetry update sco-py` and then `poetry install`
 
 You can now place breakpoints within `sco-py` code! Be sure to revert `pyproject.toml` when you make a pull request.
+

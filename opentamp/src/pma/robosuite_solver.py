@@ -271,7 +271,7 @@ class RobotSolver(backtrack_ll_solver_gurobi.BacktrackLLSolverGurobi):
                     rand=(rand or (i > 0)),
                     null_zero=zero_null,
                 )
-            elif a_name.find("moveto_pose_ontable") >= 0:
+            elif a_name.find("moveto_pose_ontable") >= 0 or a_name.find("wipe_table") >= 0:
                 info = robot_body.fwd_kinematics(arm)
                 (x, y) = info['pos'][:2]
                 # indexing is -1,0 below because we want the last arg (-1) 
