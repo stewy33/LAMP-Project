@@ -241,7 +241,7 @@ What's going on here:
 
 ## Debugging Tips
 ### Debugging Task Planning failures
-If task planning is failing, it's a good idea to check the `temp/` folder under the main repository. In particular, `temp/_temp_prob.output` will show the output of running [Fast Forward](https://planning.wiki/ref/planners/ff) on the problem specified, which can help catch subtle issues like if the goal is already achieved, or impossible, etc.
+If task planning is failing, it's a good idea to check the `temp/` folder under the main repository (note: this folder is only generated once you actually try to run task planning to solve a problem!). In particular, `temp/_temp_prob.output` will show the output of running [Fast Forward](https://planning.wiki/ref/planners/ff) on the problem specified, which can help catch subtle issues like if the goal is already achieved, or impossible, etc.
 
 ### Installing `sco-py` locally and placing breakpoints within it
 It is sometimes useful to be able to place breakpoints within `sco-py` code to inspect and debug issues with motion planning problems. To do so, follow these steps:
