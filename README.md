@@ -59,7 +59,7 @@ At a high level, OpenTAMP domain definitions require:
 #### Domain files
 Specifications for all domains should be placed in the `domains` folder directly under the `opentamp` directory
 
-For a concrete example, refer to `opentamp/domains/namo_domain/generate_namo_domain.py`. This is script designed to generate a domain file (these files are cumbersome to write directly by hand)
+For a concrete example, refer to `opentamp/domains/namo_domain/generate_namo_domain.py`. This is script designed to generate a domain file (these files are cumbersome to write directly by hand).
 
 ##### Types
 The first portion of the file will look like
