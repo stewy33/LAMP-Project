@@ -6,7 +6,7 @@ import random
 
 # SEED = 1234
 NUM_PROBS = 1
-filename = "probs/pickplace_prob.prob"
+filename = "opentamp/domains/robot_manipulation/domain/probs/pickplace_prob.prob"
 GOAL = "(RobotAt sawyer robot_end_pose)"
 
 

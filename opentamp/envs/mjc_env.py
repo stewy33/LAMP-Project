@@ -4,7 +4,6 @@ import os
 import random
 from threading import Thread
 import time
-from tkinter import TclError
 import traceback
 import sys
 import xml.etree.ElementTree as xml
@@ -197,7 +196,7 @@ class MJCEnv(Env):
             # self._matplot_im = plt.imshow(self.render(view=False))
             self._matplot_im = plt.imshow(self.cur_im)
             plt.show()
-        except TclError:
+        except Error:
             print('\nCould not find display to launch viewer (this does not affect the ability to render images)\n')
 
 

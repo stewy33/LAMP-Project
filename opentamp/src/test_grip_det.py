@@ -4,15 +4,15 @@ import itertools
 import os
 from opentamp.envs import MJCEnv
 import argparse
-from core.parsing import parse_domain_config, parse_problem_config
-import main
-import policy_hooks.namo.sorting_prob_11 as prob_gen
-from pma.namo_grip_solver import NAMOSolverOSQP, NAMOSolverGurobi
-from pma.hl_solver import *
-from pma.pr_graph import *
-from pma import backtrack_ll_solver_OSQP as bt_ll_osqp
-from pma import backtrack_ll_solver_gurobi as bt_ll_gurobi
-from core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.src.core.parsing import parse_domain_config, parse_problem_config
+import opentamp.src.main as main
+import opentamp.src.policy_hooks.namo.sorting_prob_11 as prob_gen
+from opentamp.src.pma.namo_grip_solver import NAMOSolverOSQP, NAMOSolverGurobi
+from opentamp.src.pma.hl_solver import *
+from opentamp.src.pma.pr_graph import *
+from opentamp.src.pma import backtrack_ll_solver_OSQP as bt_ll_osqp
+from opentamp.src.pma import backtrack_ll_solver_gurobi as bt_ll_gurobi
+from opentamp.src.core.util_classes.openrave_body import OpenRAVEBody
 from opentamp.src.policy_hooks.utils.policy_solver_utils import *
 import os
 

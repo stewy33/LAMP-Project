@@ -198,6 +198,7 @@ dp.add('LeftEEValid', ['Robot'])
 dp.add('RightEEValid', ['Robot'])
 dp.add('HeightBlock', ['Item', 'Item'])
 dp.add('AboveTable', ['Item'])
+dp.add('InReach', ['Reachable', 'Robot'])
 
 dom_str += dp.get_str() + '\n'
 
@@ -694,7 +695,7 @@ left_dom_str = left_dom_str.replace('            ', '')
 left_dom_str = left_dom_str.replace('    ', '')
 left_dom_str = left_dom_str.replace('    ', '')
 print(left_dom_str)
-f = open('left_robot.domain', 'w')
+f = open('opentamp/domains/robot_manipulation_domain/left_robot.domain', 'w')
 f.write(left_dom_str)
 
 
@@ -710,7 +711,7 @@ right_dom_str = right_dom_str.replace('            ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 print(right_dom_str)
-f = open('right_robot.domain', 'w')
+f = open('opentamp/domains/robot_manipulation_domain/right_robot.domain', 'w')
 f.write(right_dom_str)
 
 
@@ -726,7 +727,7 @@ right_dom_str = right_dom_str.replace('            ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 print(right_dom_str)
-f = open('right_moveto.domain', 'w')
+f = open('opentamp/domains/moveto_manipulation_domain/right_moveto.domain', 'w')
 f.write(right_dom_str)
 
 
@@ -742,6 +743,6 @@ right_dom_str = right_dom_str.replace('            ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 print(right_dom_str)
-f = open('right_grasp.domain', 'w')
+f = open('opentamp/domains/grasp_manipulation_domain/right_grasp.domain', 'w')
 f.write(right_dom_str)
 

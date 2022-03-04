@@ -2,7 +2,6 @@ from collections import OrderedDict
 import os
 
 import pybullet as p
-from opentamp.util_classes.ik_controller import *
 
 import numpy as np
 import opentamp

@@ -32,7 +32,7 @@ To install and begin using OpenTAMP on an Ubuntu (>14.04) Linux Machine, follow 
 
 ### Verify planning
 
-Try running `python opentamp/src/debug_scripts/test_grip_det.py` from the *root of the repository*, and if this script successfully completes and displays a short video at the end, your installation is correct!
+Try running `python opentamp/src/test_grip_det.py` from the *root of the repository*, and if this script successfully completes and displays a short video at the end, your installation is correct!
 
 This should take under a minute to run.
 
