@@ -5,7 +5,7 @@ from core.util_classes import common_predicates, namo_predicates
 from core.util_classes.openrave_body import OpenRAVEBody
 from core.util_classes import items
 from errors_exceptions import PredicateException, ParamValidationException
-from sco import expr
+from sco_py import expr
 import numpy as np
 from openravepy import Environment
 from core.util_classes import viewer
