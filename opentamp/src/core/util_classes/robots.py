@@ -5,7 +5,7 @@ import pybullet as p
 
 import numpy as np
 import opentamp
-
+import opentamp.src.core.util_classes.transform_utils as T
 
 
 JNT_SLACK = 1e-4
