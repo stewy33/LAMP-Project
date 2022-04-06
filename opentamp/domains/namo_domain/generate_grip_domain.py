@@ -7,9 +7,9 @@ Types: Can, Target, RobotPose, Robot, Grasp, Obstacle, Rotation
 
 # Define the class location of each non-standard attribute type used in the above parameter type descriptions.
 
-Attribute Import Paths: RedCircle core.util_classes.items, BlueCircle core.util_classes.items, GreenCircle core.util_classes.items, Vector1d core.util_classes.matrix, Vector2d core.util_classes.matrix, Wall core.util_classes.items, NAMO core.util_classes.robots
+Attribute Import Paths: RedCircle opentamp.core.util_classes.items, BlueCircle opentamp.core.util_classes.items, GreenCircle opentamp.core.util_classes.items, Vector1d opentamp.core.util_classes.matrix, Vector2d opentamp.core.util_classes.matrix, Wall opentamp.core.util_classes.items, NAMO opentamp.core.util_classes.robots
 
-Predicates Import Path: core.util_classes.namo_grip_predicates
+Predicates Import Path: opentamp.core.util_classes.namo_grip_predicates
 
 """
 
@@ -189,5 +189,8 @@ dom_str = dom_str.replace('    ', '')
 dom_str = dom_str.replace('    ', '')
 
 print(dom_str)
-f = open('namo_current_holgrip.domain', 'w')
-f.write(dom_str)
+with open('opentamp/domains/namo_domain/namo_current_holgrip.domain', 'w+') as f:
+    f.write(dom_str)
+
+with open('opentamp/domains/namo_domain/namo_current_rip.domain', 'w+') as f:
+    f.write(dom_str)

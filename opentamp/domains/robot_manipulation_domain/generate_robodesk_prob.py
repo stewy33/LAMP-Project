@@ -5,7 +5,7 @@ import random
 import sys
 
 sys.path.insert(0, '../../src/')
-import core.util_classes.common_constants as const
+import opentamp.core.util_classes.common_constants as const
 
 
 # SEED = 1234

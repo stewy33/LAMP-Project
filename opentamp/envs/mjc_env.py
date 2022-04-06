@@ -16,8 +16,8 @@ from gym import spaces
 from gym.core import Env
 
 import opentamp
-from opentamp.util_classes.mjc_xml_utils import *
-from opentamp.util_classes import transform_utils as T
+from opentamp.envs.mjc_xml_utils import *
+from opentamp.envs import transform_utils as T
 
 
 
