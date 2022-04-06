@@ -1,6 +1,7 @@
+import opentamp
 # SEED = 1234
 NUM_PROBS = 1
-filename = "opentamp/domains/robot_wiping_domain/probs/simple_move_onlytable_prob.prob"
+filename = opentamp.__path__[0]+"/domains/robot_wiping_domain/probs/simple_move_onlytable_prob.prob"
 GOAL = "(RobotAt sawyer robot_end_pose)"
 
 

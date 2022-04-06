@@ -6,14 +6,14 @@ from opentamp.core.internal_repr.action import Action
 from opentamp.core.internal_repr.plan import Plan
 
 
-CLEANUP = False
 PATCH = True
 
 class HLSolver(object):
     """
     HLSolver provides an interface to the chosen task planner.
     """
-    def __init__(self, domain_config=None, abs_domain=None):
+    def __init__(self, domain_config=None, abs_domain=None, cleanup_files=True):
+        self.cleanup_files = cleanup_files
         self.abs_domain = abs_domain if abs_domain else self._translate_domain(domain_config, first_ts_pre=True)
 
     def _translate_domain(self, domain_config):
@@ -82,8 +82,9 @@ class HLState(object):
         return s
 
 class FFSolver(HLSolver):
-    FF_EXEC = os.getcwd() + '/opentamp'+"/task_planners/FF-v2.3/ff"
+    FF_EXEC = opentamp.__path__[0]+"/task_planners/FF-v2.3/ff"
     FILE_PREFIX = "temp_"
+    PDDL_DIR = "opentamp/pddl_files/"
 
     def _parse_precondition_ts(self, pre, ts):
         preds = ''
@@ -458,9 +459,9 @@ class FFSolver(HLSolver):
         Note:
             High level planner gets called here.
         """
-        if not os.path.isdir('temp'):
-            os.mkdir('temp')
-        fprefix = 'temp/'+label+'_'+FFSolver.FILE_PREFIX
+        if not os.path.isdir(FFSolver.PDDL_DIR):
+            os.mkdir(FFSolver.PDDL_DIR)
+        fprefix = FFSolver.PDDL_DIR+label+'_'+FFSolver.FILE_PREFIX
         with open("%sdom.pddl"%(fprefix), "w") as f:
             f.write(abs_domain)
         with open("%sprob.pddl"%(fprefix), "w") as f:
@@ -481,7 +482,7 @@ class FFSolver(HLSolver):
                 print('Error in filter for', s, fprefix, '\n\n', abs_prob, '\n\n')
                 plan = Plan.IMPOSSIBLE
 
-        if CLEANUP: 
+        if self.cleanup_files: 
             subprocess.call(["rm", "-f", "%sdom.pddl"%fprefix,
                              "%sprob.pddl"%fprefix,
                              "%sprob.pddl.soln"%fprefix,
@@ -536,9 +537,10 @@ class FFSolver(HLSolver):
         return new_initial
 
 class FDSolver(FFSolver):
-    FD_EXEC = os.getcwd() + '/opentamp'+"/task_planners/downward/fast-downward.py"
+    FD_EXEC = opentamp.__path__[0]+"/task_planners/downward/fast-downward.py"
     FD_ARGS = ["--alias", "seq-sat-lama-2011"]
     FILE_PREFIX = "temp_"
+    PDDL_DIR = "opentamp/pddl_files/"
 
     def _run_planner(self, abs_domain, abs_prob, label=''):
         """
@@ -550,11 +552,11 @@ class FDSolver(FFSolver):
         Note:
             High level planner gets called here.
         """
-        if not os.path.isdir('temp'):
-            os.mkdir('temp')
+        if not os.path.isdir(FDSolver.PDDL_DIR):
+            os.mkdir(FDSolver.PDDL_DIR)
 
         if len(label): label += "_"
-        fprefix = 'temp/'+label+FDSolver.FILE_PREFIX
+        fprefix = FDSolver.PDDL_DIR+label+FDSolver.FILE_PREFIX
         with open("%sdom.pddl"%(fprefix), "w") as f:
             f.write(abs_domain)
 
@@ -562,7 +564,7 @@ class FDSolver(FFSolver):
             f.write(abs_prob)
 
         output_path = "%sprob.output"%(fprefix)
-        log_file = "temp/fastdownward.log"
+        log_file = FDSolver.PDDL_DIR+"/fastdownward.log"
         commands = [FDSolver.FD_EXEC, 
                     "--plan-file", 
                     output_path] + FDSolver.FD_ARGS
@@ -596,7 +598,7 @@ class FDSolver(FFSolver):
             print('Ran -->', commands+pddl_files, "\n\n")
             plan = Plan.IMPOSSIBLE
 
-        if CLEANUP: 
+        if self.cleanup_files: 
             subprocess.call(["rm", "-f", "%sdom.pddl"%fprefix,
                              "%sprob.pddl"%fprefix,
                              "%sprob.pddl.soln"%fprefix,

@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0, '../../src/')
+import opentamp
 import opentamp.core.util_classes.common_constants as const
 from opentamp.core.util_classes.robots import *
 
@@ -695,7 +695,7 @@ left_dom_str = left_dom_str.replace('            ', '')
 left_dom_str = left_dom_str.replace('    ', '')
 left_dom_str = left_dom_str.replace('    ', '')
 print(left_dom_str)
-f = open('opentamp/domains/robot_manipulation_domain/left_robot.domain', 'w')
+f = open(opentamp.__path__[0]+'/domains/robot_manipulation_domain/left_robot.domain', 'w')
 f.write(left_dom_str)
 
 
@@ -711,7 +711,7 @@ right_dom_str = right_dom_str.replace('            ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 print(right_dom_str)
-f = open('opentamp/domains/robot_manipulation_domain/right_robot.domain', 'w')
+f = open(opentamp.__path__[0]+'/domains/robot_manipulation_domain/right_robot.domain', 'w')
 f.write(right_dom_str)
 
 
@@ -727,7 +727,7 @@ right_dom_str = right_dom_str.replace('            ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 print(right_dom_str)
-f = open('opentamp/domains/robot_manipulation_domain/right_moveto.domain', 'w')
+f = open(opentamp.__path__[0]+'/domains/robot_manipulation_domain/right_moveto.domain', 'w')
 f.write(right_dom_str)
 
 
@@ -743,6 +743,6 @@ right_dom_str = right_dom_str.replace('            ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 print(right_dom_str)
-f = open('opentamp/domains/robot_manipulation_domain/right_grasp.domain', 'w')
+f = open(opentamp.__path__[0]+'/domains/robot_manipulation_domain/right_grasp.domain', 'w')
 f.write(right_dom_str)
 

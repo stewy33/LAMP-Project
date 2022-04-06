@@ -1,6 +1,5 @@
 import copy
 import sys
-sys.path.insert(0, '../../src/')
 import opentamp.core.util_classes.common_constants as const
 from opentamp.core.util_classes.robots import *
 
@@ -1500,7 +1499,7 @@ right_dom_str = right_dom_str.replace('            ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 print(right_dom_str)
-f = open('opentamp/domains/robot_manipulation_domain/right_robot.domain', 'w')
+f = open(opentamp.__path__[0]+'/domains/robot_manipulation_domain/right_robot.domain', 'w')
 f.write(right_dom_str)
 
 
@@ -1519,6 +1518,6 @@ right_dom_str = right_dom_str.replace('            ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 print(right_dom_str)
-f = open('opentamp/domains/robot_manipulation_domain/right_desk.domain', 'w')
+f = open(opentamp.__path__[0]+'/domains/robot_manipulation_domain/right_desk.domain', 'w')
 f.write(right_dom_str)
 

@@ -1,6 +1,9 @@
 import pybullet as p
 import os
 
+import opentamp
+
+
 class Item(object):
     """
     Base class of every Objects in environment
@@ -194,14 +197,14 @@ class Door(XMLItem):
 
         self.handle_orn = [0., 0., 0.]
         if door_type.lower() == 'desk_drawer':
-            shape = os.getcwd() + '/opentamp' + '/robot_info/robodesk/desk_drawer.xml'
+            shape = opentamp.__path__[0] + '/robot_info/robodesk/desk_drawer.xml'
             self.handle_pos = [0., -0.36, 0.01]
             self.hinge_type = 'prismatic'
             self.closed_val = 0.
             self.open_val = -0.23 #-0.48
             self.open_dir = [0., -1., 0.]
         elif door_type.lower() == 'desk_shelf':
-            shape = os.getcwd() + '/opentamp' + '/robot_info/robodesk/desk_shelf.xml'
+            shape = opentamp.__path__[0] + '/robot_info/robodesk/desk_shelf.xml'
             self.hinge_type = 'prismatic'
             self.handle_pos = [-0.3, -0.07, 1.005]
             self.handle_orn = [1.57, 1.57, 0.]
