@@ -24,3 +24,5 @@ src/experiment_logs/*
 .vscode
 temp/*
 MUJOCO_LOG.TXT
+*.DS_Store
+

@@ -1,20 +1,21 @@
 import itertools
 import random
 
-import gurobipy as grb
 import numpy as np
+
+import gurobipy as grb
+GRB = grb.GRB
+
+from sco_py.expr import AffExpr, BoundExpr, QuadExpr
+from sco_py.sco_gurobi.prob import Prob
+from sco_py.sco_gurobi.solver import Solver
+from sco_py.sco_gurobi.variable import Variable
 
 from core.internal_repr.parameter import Object
 from core.util_classes.matrix import Vector
 from core.util_classes.openrave_body import OpenRAVEBody
 from core.util_classes.viewer import OpenRAVEViewer
 from pma.ll_solver_gurobi import LLParam, LLSolver
-from sco_py.expr import AffExpr, BoundExpr, QuadExpr
-from sco_py.sco_gurobi.prob import Prob
-from sco_py.sco_gurobi.solver import Solver
-from sco_py.sco_gurobi.variable import Variable
-
-GRB = grb.GRB
 
 
 MAX_PRIORITY = 3

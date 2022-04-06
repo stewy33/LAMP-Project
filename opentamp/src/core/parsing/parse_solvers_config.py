@@ -1,5 +1,5 @@
 from errors_exceptions import HLException, LLException, SolversConfigException
-from pma import hl_solver, ll_solver_gurobi
+from pma import hl_solver
 
 
 class ParseSolversConfig(object):

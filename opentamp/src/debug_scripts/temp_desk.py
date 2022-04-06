@@ -13,7 +13,7 @@ from core.util_classes.transform_utils import *
 from pma.hl_solver import *
 from pma.pr_graph import *
 from pma import backtrack_ll_solver as bt_ll
-from pma.robot_solver import RobotSolver
+from pma.robot_solver import RobotSolverOSQP
 import core.util_classes.transform_utils as T
 
 from policy_hooks.multiprocess_main import load_config, setup_dirs, DIR_KEY
@@ -158,7 +158,7 @@ for run_num in range(N_RUNS):
     print('SOLVING:', goal, goal_info)
 
     print('CONSISTENT?', problem.init_state.is_consistent())
-    solver = RobotSolver()
+    solver = RobotSolverOSQP()
 
     plan, descr = p_mod_abs(hls, solver, domain, problem, goal=goal, debug=True, n_resamples=3, max_iter=2)
 

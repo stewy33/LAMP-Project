@@ -3,14 +3,15 @@ import random
 
 import numpy as np
 
-from core.internal_repr.parameter import Object
-from core.util_classes.matrix import Vector
-from core.util_classes.openrave_body import OpenRAVEBody
-from core.util_classes.viewer import OpenRAVEViewer
 from sco_py.expr import AffExpr, BoundExpr, QuadExpr
 from sco_py.sco_osqp.prob import Prob
 from sco_py.sco_osqp.solver import Solver
 from sco_py.sco_osqp.variable import Variable
+
+from opentamp.src.core.internal_repr.parameter import Object
+from opentamp.src.core.util_classes.matrix import Vector
+from opentamp.src.core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.src.core.util_classes.viewer import OpenRAVEViewer
 
 from .ll_solver_OSQP import LLParamOSQP, LLSolverOSQP
 

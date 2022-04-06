@@ -3,7 +3,10 @@ from collections import OrderedDict
 
 import numpy as np
 import pybullet as P
-import tensorflow as tf
+try:
+    import tensorflow as tf
+except:
+    print('Could not import tensorflow for namo predicates')
 
 from core.internal_repr.plan import Plan
 from core.internal_repr.predicate import Predicate
@@ -12,7 +15,6 @@ from core.util_classes.openrave_body import OpenRAVEBody
 from errors_exceptions import PredicateException
 from sco_py.expr import Expr, AffExpr, EqExpr, LEqExpr
 import numpy as np
-import tensorflow as tf
 
 USE_OPENRAVE = False
 if USE_OPENRAVE:

@@ -1,0 +1,11 @@
+-> brew install hdf5
+   --> May be helpful if mac silicon issues crop up: https://diewland.medium.com/how-to-install-python-3-7-on-macbook-m1-87c5b0fcb3b5
+-> export HDF5_DIR="$(brew --prefix hdf5)"
+-> --Inside petry shell--:
+    pip install --no-binary=h5py h5py
+-> brew install cmake
+-> install breaks at qdldl?
+    --> Maybe install from https://github.com/osqp/qdldl
+-> brew install glfw
+-> pip install glfw
+
