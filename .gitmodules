@@ -1,3 +1,0 @@
-[submodule "opentamp/task_planners/downward"]
-	path = opentamp/task_planners/downward
-	url = https://github.com/m-j-mcdonald/downward.git
