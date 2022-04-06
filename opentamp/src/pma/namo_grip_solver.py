@@ -247,7 +247,7 @@ class NAMOSolverOSQP(backtrack_ll_solver_OSQP.BacktrackLLSolverOSQP):
         return a.params[0]
 
     def freeze_rs_param(self, act):
-        return False
+        return True
 
     def obj_pose_suggester(self, plan, anum, resample_size=1, st=0):
         return namo_obj_pose_suggester(plan, anum, resample_size, st)
