@@ -1,0 +1,4 @@
+[submodule "opentamp/task_planners/downward"]
+	path = opentamp/task_planners/downward
+    url = https://github.com/aibasel/downward.git
+    ignore = all
