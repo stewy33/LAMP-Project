@@ -59,7 +59,12 @@ for pname in params:
 # solver = NAMOSolverGurobi()
 solver = NAMOSolverOSQP()
 
-hls = FFSolver(d_c)
+USE_FF = False
+if USE_FF:
+    hls = FFSolver(d_c)
+else:
+    hls = FDSolver(d_c)
+    
 plan, descr = p_mod_abs(hls, solver, domain, problem, goal=goal, debug=True, n_resamples=5)
 
 if plan is None:

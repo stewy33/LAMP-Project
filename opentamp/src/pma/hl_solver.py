@@ -535,6 +535,102 @@ class FFSolver(HLSolver):
 
         return new_initial
 
+class FDSolver(FFSolver):
+    FD_EXEC = os.getcwd() + '/opentamp'+"/task_planners/downward/fast-downward.py"
+    FD_ARGS = ["--alias", "seq-sat-lama-2011"]
+    FILE_PREFIX = "temp_"
+
+    def _run_planner(self, abs_domain, abs_prob, label=''):
+        """
+        Argument:
+            abs_domain: translated domain in .PDDL recognizable by HLSolver (String)
+            abs_prob: translated problem in .PDDL recognizable by HLSolver (String)
+        Return:
+            list of high level plan (List(String))
+        Note:
+            High level planner gets called here.
+        """
+        if not os.path.isdir('temp'):
+            os.mkdir('temp')
+
+        if len(label): label += "_"
+        fprefix = 'temp/'+label+FDSolver.FILE_PREFIX
+        with open("%sdom.pddl"%(fprefix), "w") as f:
+            f.write(abs_domain)
+
+        with open("%sprob.pddl"%(fprefix), "w") as f:
+            f.write(abs_prob)
+
+        output_path = "%sprob.output"%(fprefix)
+        log_file = "temp/fastdownward.log"
+        commands = [FDSolver.FD_EXEC, 
+                    "--plan-file", 
+                    output_path] + FDSolver.FD_ARGS
+
+        pddl_files = ["%sdom.pddl"%(fprefix), 
+                      "%sprob.pddl"%(fprefix)]
+
+        with open(log_file, "w+") as f:
+            try:
+                subprocess.call(commands+pddl_files, stdout=f, timeout=300)
+            except subprocess.TimeoutExpired:
+                print('Error: FD solve timed out!')
+
+        soln_path = output_path + ".1"
+        if os.path.exists(soln_path):
+            with open(output_path+".1", "r") as f:
+                s = f.read()
+
+            try:
+                plan = s.split('\n')[:-2]
+                for i in range(len(plan)):
+                    plan[i] = "{}: ".format(i) + plan[i][1:-1]
+
+            except:
+                print('FD Commands -->', commands+pddl_files)
+                print('Error in filter for', s, fprefix, '\n\n', abs_prob, '\n\n')
+                plan = Plan.IMPOSSIBLE
+
+        else:   
+            print('\nFD solve failed! Refer to {}'.format(log_file))
+            print('Ran -->', commands+pddl_files, "\n\n")
+            plan = Plan.IMPOSSIBLE
+
+        if CLEANUP: 
+            subprocess.call(["rm", "-f", "%sdom.pddl"%fprefix,
+                             "%sprob.pddl"%fprefix,
+                             "%sprob.pddl.soln"%fprefix,
+                             soln_path])
+
+        if PATCH and plan != Plan.IMPOSSIBLE:
+            plan = self._patch_redundancy(plan)
+
+        return plan
+
+    def _patch_redundancy(self, plan_str):
+        """
+        Argument:
+            plan_str: list of high level plan (List(String))
+        Return:
+            list of high level plan that don't have redundancy. (List(String))
+        """
+        i = 0
+        while i < len(plan_str)-1:
+            if "move_to" in plan_str[i] and "move_to" in plan_str[i+1]:
+                #pose = plan_str[i+1].split()[-1]
+                del plan_str[i]
+                #spl = plan_str[i].split()
+                #spl[-1] = pose
+                #plan_str[i] = " ".join(spl)
+            else:
+                i += 1
+
+        for i in range(len(plan_str)):
+            spl = plan_str[i].split(":", 1)
+            plan_str[i] = "%s:%s"%(i, spl[1])
+            
+        return plan_str
+
 class DummyHLSolver(HLSolver):
     def _translate_domain(self, domain_config):
         return "translate domain"
