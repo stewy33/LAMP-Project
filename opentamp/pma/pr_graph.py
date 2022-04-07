@@ -31,8 +31,9 @@ def p_mod_abs(
     if goal is None and problem.goal_test():
         return None, "Goal is already satisfied. No planning done."
 
+    abs_prob = hl_solver.translate_problem(problem, initial, goal)
     n0 = HLSearchNode(
-        hl_solver.translate_problem(problem, initial, goal),
+        abs_prob,
         domain,
         problem,
         priority=0,
@@ -42,8 +43,8 @@ def p_mod_abs(
     Q = PriorityQueue()
     Q.put((n0.heuristic(), n0))
     for cur_iter in range(max_iter):
-        if Q.empty():
-            break
+        if Q.empty(): break
+
         n = Q.get_nowait()[1]
         if n.is_hl_node():
             c_plan = n.plan(hl_solver, debug)
@@ -52,32 +53,49 @@ def p_mod_abs(
                 if debug:
                     print("Found impossible plan")
                 continue
-            c = LLSearchNode(c_plan, n.concr_prob, priority=n.priority + 1)
+
+            c = LLSearchNode(plan=c_plan, 
+                             domain=domain,
+                             prob=n.concr_prob, 
+                             initial=n.concr_prob.initial,
+                             priority=n.priority + 1,
+                             ref_plan=n.ref_plan,
+                             expansions=n.expansions + 1,
+                             refnode=n,
+                             label=n.label,
+                             info=n.info)
+
             Q.put((n.heuristic(), n))
             Q.put((c.heuristic(), c))
+
         elif n.is_ll_node():
             n.plan(ll_solver, n_resamples=n_resamples, debug=debug)
             if n.solved():
                 print("SOLVED PR GRAPH")
                 if smoothing:
                     suc = ll_solver.traj_smoother(n.curr_plan, n_resamples=n_resamples)
+
                 return n.curr_plan, None
+
             Q.put((n.heuristic(), n))
+            
             if n.gen_child():
                 # Expand the node
                 fail_step, fail_pred, fail_negated = n.get_failed_pred()
                 n_problem = n.get_problem(fail_step, fail_pred, fail_negated, suggester)
                 abs_prob = hl_solver.translate_problem(n_problem, goal=goal)
                 prefix = n.curr_plan.prefix(fail_step)
-                c = HLSearchNode(
-                    abs_prob,
-                    domain,
-                    n_problem,
-                    priority=n.priority + 1,
-                    prefix=prefix,
-                    label=label,
-                    llnode=n,
-                )
+
+                c = HLSearchNode(abs_prob,
+                                 domain,
+                                 n_problem,
+                                 priority=n.priority + 1,
+                                 prefix=prefix,
+                                 label=n.label,
+                                 llnode=n,
+                                 expansions=n.expansions + 1,
+                                 info=n.info,)
+
                 Q.put((c.heuristic(), c))
 
         if debug:
