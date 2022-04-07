@@ -2,8 +2,8 @@ from opentamp.errors_exceptions import DomainConfigException
 from opentamp.core.util_classes.matrix import Vector
 from opentamp.core.util_classes.openrave_body import OpenRAVEBody
 
-import h5py
 import numpy as np
+
 
 class Parameter(object):
     """
@@ -180,13 +180,6 @@ class Object(Parameter):
             new._free_attrs = new_free
         return new
 
-    def write_to_hdf5(self, file_name):
-        hdf5_file = h5py.File(file_name, 'w')
-        group = hdf5_file.create_group('trajectory')
-        for attr_name, value in list(self.__dict__.items()):
-            if issubclass(self.get_attr_type(attr_name), Vector):
-                group.create_dataset(attr_name, data=value)
-        hdf5_file.close()
 
 class Symbol(Parameter):
     """
@@ -214,7 +207,7 @@ class Symbol(Parameter):
         new = Symbol()
         new_free = {}
         for k, v in list(self.__dict__.items()):
-            if type(v) is not np.ndarray and v == 'undefined':
+            if v == 'undefined':
                 attr_type = self.get_attr_type(k)
                 assert issubclass(attr_type, Vector)
                 val = np.empty((attr_type.dim, 1))
@@ -227,4 +220,6 @@ class Symbol(Parameter):
                     new_free[k] = np.zeros_like(v) # self._free_attrs[k].copy()
             else:
                 setattr(new, k, v)
+        # if reset_free:
+        #     new._free_attrs = new_free
         return new

@@ -11,7 +11,7 @@ from robosuite.controllers import load_controller_config
 from scipy.spatial.transform import Rotation
 
 import opentamp.core.util_classes.transform_utils as T
-import opentamp.main
+import opentamp.main as main
 from opentamp.core.parsing import parse_domain_config, parse_problem_config
 from opentamp.core.util_classes.openrave_body import *
 from opentamp.core.util_classes.transform_utils import *

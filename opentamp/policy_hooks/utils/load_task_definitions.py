@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 
-import opentamp.main
+import opentamp.main as main
 from opentamp.core.parsing import parse_domain_config, parse_problem_config
 from opentamp.pma.hl_solver import FFSolver
 

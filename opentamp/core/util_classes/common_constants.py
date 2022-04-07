@@ -1,3 +1,4 @@
+import opentamp.software_constants as const
 import numpy as np
 
 """
@@ -28,7 +29,10 @@ APPROACH_DIST = 0.025
 RETREAT_DIST = 0.03
 QUICK_APPROACH_DIST = 0.025
 QUICK_RETREAT_DIST = 0.03
-EEREACHABLE_STEPS = 6 # 7 # 6 # 4
+EEREACHABLE_STEPS = 5 # 7 # 6 # 4
+#EEREACHABLE_STACK_STEPS = 6
+STACK_APPROACH_DIST = 0.02
+STACK_RETREAT_DIST = 0.01
 
 # Collision Constants
 DIST_SAFE = 1e-3
@@ -37,8 +41,8 @@ COLLIDES_DSAFE = 1e-3
 
 # Plan Coefficient
 
-EEREACHABLE_COEFF = 5e-1#5e-2
-EEREACHABLE_ROT_COEFF = 5e-1#5e-2
+EEREACHABLE_COEFF = 5e-2
+EEREACHABLE_ROT_COEFF = 5e-2
 IN_GRIPPER_COEFF = 1e-1
 IN_GRIPPER_ROT_COEFF = 1e0#2e0
 WASHER_IN_GRIPPER_ROT_COEFF = 1e-2
@@ -89,9 +93,9 @@ RESAMPLE_FACTOR_LR = [0.1, 0.1, 0.05]
 Following are for relative positions on complex objects
 """
 #DRAWER_HANDLE_POS = [0., -0.34, -0.02]
-DRAWER_HANDLE_POS = [0., -0.32, -0.03]
+DRAWER_HANDLE_POS = [0., -0.34, -0.04]
 #IN_DRAWER_POS = [0., -0.4, 0.03]
-IN_DRAWER_POS = [0., -0.4, 0.06]
+IN_DRAWER_POS = [0., -0.4, 0.07]
 DRAWER_HANDLE_ORN = [0., 0., 1.57]
 #DRAWER_HANDLE_ORN = [0., 0., -1.57]
 IN_DRAWER_ORN = [0., 0., 0.]
@@ -99,8 +103,8 @@ IN_DRAWER_ORN = [0., 0., 0.]
 #SHELF_HANDLE_POS = [-0.3, -0.07, 1.0]
 #SHELF_HANDLE_POS = [-0.3, 0.0, 1.0]
 SHELF_HANDLE_POS = [-0.3, 0.01, 1.01]
-#IN_SHELF_POS = [0.27, 0.15, 0.93]
-IN_SHELF_POS = [0.4, 0.15, 0.88]
+#IN_SHELF_POS = [0.4, 0.16, 0.93]
+IN_SHELF_POS = [0.4, 0.16, 0.88]
 #SHELF_HANDLE_ORN = [1.57, 1.57, 0.]
 SHELF_HANDLE_ORN = [0., 0.758, -1.57]
 IN_SHELF_ORN = [1.57, 1.57, 0.]
@@ -156,4 +160,5 @@ ATTRMAP = {"Rotation": [("value", np.array([0], dtype=np.int))],
             "Fabric": (("gripleft", np.array([0,1,2], dtype=np.int)),
                        ("gripright", np.array([0,1,2], dtype=np.int))),
             "Region": [("value", np.array([0,1], dtype=np.int))]}
+
 

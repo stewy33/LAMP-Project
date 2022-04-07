@@ -34,7 +34,7 @@ domain = parse_domain_config.ParseDomainConfig.parse(d_c)
 prob_file = os.getcwd() + '/opentamp' + "/domains/namo_domain/namo_probs/grip_prob_{}_8end_0aux.prob".format(N_OBJS)
 goal = '(and '
 p_c = main.parse_file_to_dict(prob_file)
-problem = parse_problem_config.ParseProblemConfig.parse(p_c, domain, None)
+problem = parse_problem_config.ParseProblemConfig.parse(p_c, domain, None, visual=visual)
 
 possible_can_locs = list(itertools.product(list(range(-70, 70, 4)), list(range(-60, 0, 4))))
 params = problem.init_state.params

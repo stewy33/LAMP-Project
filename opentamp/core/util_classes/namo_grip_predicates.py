@@ -505,7 +505,7 @@ class CollisionPredicate(ExprPredicate):
 
 
 class HLPoseUsed(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Can Target
         self.pose = params[0]
         if self.pose.is_symbol():
@@ -531,7 +531,7 @@ class HLPoseUsed(ExprPredicate):
 
 
 class HLGraspFailed(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         self.pose = params[0]
         if self.pose.is_symbol():
             k = "value"
@@ -554,7 +554,7 @@ class HLGraspFailed(ExprPredicate):
 
 
 class HLTransferFailed(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         self.pose = params[0]
         if self.pose.is_symbol():
             k = "value"
@@ -584,7 +584,7 @@ class HLPoseAtGrasp(HLPoseUsed):
 
     # RobotAt Robot Can Grasp
 
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Robot RobotPose
         self.r, self.c, self.g = params
         k = "pose" if not self.r.is_symbol() else "value"
@@ -620,7 +620,7 @@ class HLPoseAtGrasp(HLPoseUsed):
 
 
 class At(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Can Target
         self.can, self.targ = params
         attr_inds = OrderedDict(
@@ -641,7 +641,7 @@ class At(ExprPredicate):
 
 
 class AtNEq(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Can Target
         self.can, self.eq, self.targ = params
         attr_inds = OrderedDict(
@@ -679,7 +679,7 @@ class RobotAt(At):
 
     # RobotAt Robot RobotPose
 
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Robot RobotPose
         self.r, self.rp = params
         attr_inds = OrderedDict(
@@ -698,7 +698,7 @@ class RobotAt(At):
 
 
 class RobotAtRot(At):
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         self.r, self.rot = params
         attr_inds = OrderedDict(
             [
@@ -720,7 +720,7 @@ class BoxAt(At):
 
 
 class Near(At):
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         self.r, self.c = params
         attr_inds = OrderedDict(
             [
@@ -739,7 +739,7 @@ class Near(At):
 
 
 class RobotNearTarget(At):
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Robot RobotPose
         self.r, self.t = params
         attr_inds = OrderedDict(
@@ -761,7 +761,7 @@ class RobotNear(At):
 
     # RobotAt Robot Can
 
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Robot RobotPose
         self.r, self.c = params
         attr_inds = OrderedDict(
@@ -783,7 +783,7 @@ class NotRobotNear(At):
 
     # RobotAt Robot Can
 
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Robot RobotPose
         self.r, self.c = params
         attr_inds = OrderedDict(
@@ -805,7 +805,7 @@ class AtCloset(At):
 
     # RobotAt Robot RobotPose
 
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Robot RobotPose
         (self.r,) = params
         attr_inds = OrderedDict(
@@ -832,7 +832,7 @@ class OpenDoorApproach(At):
 
     # RobotAt Robot RobotPose
 
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Robot RobotPose
         (self.r,) = params
         attr_inds = OrderedDict(
@@ -860,7 +860,7 @@ class OpenDoorReady(At):
 
     # RobotAt Robot RobotPose
 
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Robot RobotPose
         (self.r,) = params
         attr_inds = OrderedDict(
@@ -888,7 +888,7 @@ class CloseDoorApproach(At):
 
     # RobotAt Robot RobotPose
 
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Robot RobotPose
         (self.r,) = params
         attr_inds = OrderedDict(
@@ -916,7 +916,7 @@ class CloseDoorReady(At):
 
     # RobotAt Robot RobotPose
 
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Robot RobotPose
         (self.r,) = params
         attr_inds = OrderedDict(
@@ -944,7 +944,7 @@ class RobotWithinBounds(At):
 
     # RobotAt Robot Can
 
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Robot RobotPose
         self.r, self.c = params
         attr_inds = OrderedDict([(self.r, [("pose", np.array([0, 1], dtype=np.int))])])
@@ -961,7 +961,7 @@ class RobotNearGrasp(At):
 
     # RobotAt Robot Can Grasp
 
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Robot RobotPose
         self.r, self.c, self.g = params
         attr_inds = OrderedDict(
@@ -988,7 +988,7 @@ class RobotAtGrasp(At):
 
     # RobotAt Robot Can Grasp
 
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Robot RobotPose
         self.r, self.c, self.g = params
         k = "pose" if not self.r.is_symbol() else "value"
@@ -1023,7 +1023,7 @@ class RobotWithinReach(At):
 
     # RobotAt Robot Target
 
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Robot RobotPose
         self.r, self.t = params
         attr_inds = OrderedDict(
@@ -1042,7 +1042,7 @@ class RobotWithinReach(At):
 
 
 class InCloset(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         ## At Can Target
         (self.can,) = params
         k = "value" if self.can.is_symbol() else "pose"
@@ -1060,7 +1060,7 @@ class InCloset(ExprPredicate):
 
 class InClosetObj(ExprPredicate):
     def __init__(
-        self, name, params, expected_param_types, env=None, sess=None, coeff=1e-1
+        self, name, params, expected_param_types, env=None, sess=None, coeff=1e-1, debug=False
     ):
         ## At Can Target
         self.can, self.targ = params
@@ -1094,7 +1094,7 @@ class InClosetObj(ExprPredicate):
 
 
 class GripperClosed(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         (self.robot,) = params
         attr_inds = OrderedDict(
             [(self.robot, [("gripper", np.array([0], dtype=np.int))])]
@@ -1122,7 +1122,7 @@ class GripperClosed(ExprPredicate):
 
 
 class DoorClosed(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         (self.door,) = params
         if not hasattr(self, "coeff"):
             self.coeff = 1e0
@@ -1152,7 +1152,7 @@ class DoorClosed(ExprPredicate):
 
 
 class DoorNearClosed(DoorClosed):
-    def __init__(self, name, params, expected_param_types, env=None, sess=None):
+    def __init__(self, name, params, expected_param_types, env=None, sess=None, debug=False):
         self.coeff = 1e-2
         super(DoorNearClosed, self).__init__(
             name, params, expected_param_types, env, sess
@@ -2108,23 +2108,28 @@ class ObstructsHolding(CollisionPredicate):
             theta = self.r.theta[0, i]
             poses.append(inter_rp)
             add_to_attr_inds_and_res(i, attr_inds, res, self.r, [("pose", inter_rp)])
-            if len(poses) > 1:
-                newtheta = np.arctan2(*(poses[-1] - poses[-2]))
-                curtheta = self.r.theta[0, i - 1]
-                opp_theta = opposite_angle(newtheta)
-                theta = newtheta
-                if np.abs(angle_diff(curtheta, newtheta)) > np.abs(
-                    angle_diff(opp_theta, curtheta)
-                ):
-                    theta = opp_theta
-                inter_hp = poses[-2] + [
-                    (gripdist + dsafe) * -np.sin(theta),
-                    (gripdist + dsafe) * np.cos(theta),
-                ]
-                add_to_attr_inds_and_res(
-                    i - 1, attr_inds, res, self.held, [("pose", inter_hp)]
-                )
-                # add_to_attr_inds_and_res(i-1, attr_inds, res, self.r, [('theta', np.array([theta]))])
+
+            inter_hp = poses[-1] + [(gripdist + dsafe) * -np.sin(theta),
+                                    (gripdist + dsafe) * np.cos(theta),]
+            add_to_attr_inds_and_res(i, attr_inds, res, self.held, [("pose", inter_hp)])
+
+            # if len(poses) > 1:
+            #     newtheta = np.arctan2(*(poses[-1] - poses[-2]))
+            #     curtheta = self.r.theta[0, i - 1]
+            #     opp_theta = opposite_angle(newtheta)
+            #     theta = newtheta
+            #     if np.abs(angle_diff(curtheta, newtheta)) > np.abs(
+            #         angle_diff(opp_theta, curtheta)
+            #     ):
+            #         theta = opp_theta
+            #     inter_hp = poses[-2] + [
+            #         (gripdist + dsafe) * -np.sin(theta),
+            #         (gripdist + dsafe) * np.cos(theta),
+            #     ]
+            #     add_to_attr_inds_and_res(
+            #         i - 1, attr_inds, res, self.held, [("pose", inter_hp)]
+            #     )
+            #     # add_to_attr_inds_and_res(i-1, attr_inds, res, self.r, [('theta', np.array([theta]))])
         return res, attr_inds
 
     def get_expr(self, negated):

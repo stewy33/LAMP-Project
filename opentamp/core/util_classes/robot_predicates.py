@@ -176,7 +176,7 @@ class RobotPredicate(ExprPredicate):
     """
     Super-class for all robot predicates, defines several required functions
     """
-    def __init__(self, name, expr, attr_inds, params, expected_param_types, env=None, active_range=(0,0), tol=DEFAULT_TOL, priority=0):
+    def __init__(self, name, expr, attr_inds, params, expected_param_types, env=None, active_range=(0,0), tol=DEFAULT_TOL, priority=0, debug=False):
         if not hasattr(self, 'arm') and hasattr(params[0].geom, 'arm'): self.arm = params[0].geom.arms[0]
         super(RobotPredicate, self).__init__(name, expr, attr_inds, params, expected_param_types, tol=tol, priority = priority, active_range=active_range)
         self._init_include = False
@@ -369,7 +369,7 @@ class RobotPredicate(ExprPredicate):
 class CollisionPredicate(RobotPredicate):
 
     #@profile
-    def __init__(self, name, e, attr_inds, params, expected_param_types, dsafe = const.DIST_SAFE, debug = False, ind0=0, ind1=1, tol=const.COLLISION_TOL, priority = 0):
+    def __init__(self, name, e, attr_inds, params, expected_param_types, dsafe = const.DIST_SAFE, debug = False, ind0=0, ind1=1, tol=const.COLLISION_TOL, priority=0):
         self._debug = debug
         if self._debug:
             self._env.SetViewer("qtcoin")
@@ -1259,7 +1259,7 @@ class At(ExprPredicate):
         Non-robot related
     """
     #@profile
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.target = params
         k = 'value' if self.target.is_symbol() else 'pose'
@@ -1283,7 +1283,7 @@ class At(ExprPredicate):
 
 class AtRot(ExprPredicate):
     #@profile
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.target = params
         attr_inds = OrderedDict([(self.obj, [("rotation", np.array([0,1,2], dtype=np.int))]),
@@ -1312,7 +1312,7 @@ class AtPose(ExprPredicate):
 
         Non-robot related
     """
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.target = params
         attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype=np.int))]),
@@ -1333,7 +1333,7 @@ class Above(ExprPredicate):
         Non-robot related
     """
     #@profile
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.target = params
         attr_inds = OrderedDict([(self.obj, [("pose", np.array([1,2], dtype=np.int)),
@@ -1362,7 +1362,7 @@ class Near(ExprPredicate):
         Non-robot related
     """
     #@profile
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.target = params
         attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype=np.int))]),
@@ -1399,7 +1399,7 @@ class HLAnchor(ExprPredicate):
         Should Always return True
     """
     #@profile
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         attr_inds = self.attr_inds
 
@@ -1410,6 +1410,28 @@ class HLAnchor(ExprPredicate):
         super(HLAnchor, self).__init__(name, e, attr_inds, params, expected_param_types, priority = -2)
         self.spacial_anchor = True
 
+class PoseAdjacent(ExprPredicate):
+    """
+        Format: PoseAdjacent, RobotPose, RobotPose
+        Robot related
+        Requires:
+            attr_inds[OrderedDict]: robot attribute indices
+            attr_dim[Int]: dimension of robot attribute
+    """
+    #@profile
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
+        assert len(params) == 2
+        self.robot_pose1, self.robot_pose2 = params
+        self.attr_inds =  OrderedDict([(self.robot_pose1, [('value', np.array([0,1,2], dtype=np.int))]), (self.robot_pose2, [('value', np.array([0,1,2], dtype=np.int))])])
+        self.attr_dim = 3
+
+        # A = np.c_[np.eye(self.attr_dim), -np.eye(self.attr_dim)]
+        A = np.zeros((3,6))
+        b, val = np.zeros((self.attr_dim, 1)), np.zeros((self.attr_dim, 1))
+        e = EqExpr(AffExpr(A, b), val)
+        super(PoseAdjacent, self).__init__(name, e, self.attr_inds, params, expected_param_types, priority = -2)
+        self.spacial_anchor = False
+        
 class RobotAt(ExprPredicate):
     """
         Format: RobotAt, Robot, RobotPose
@@ -1421,7 +1443,7 @@ class RobotAt(ExprPredicate):
             attr_dim[Int]: dimension of robot attribute
     """
     #@profile
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.robot, self.robot_pose = params
         attrs = self.robot.geom.arms + self.robot.geom.grippers + ['pose', 'rotation']
@@ -1552,7 +1574,7 @@ class Stationary(ExprPredicate):
         Non-robot related
     """
     #@profile
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.obj,  = params
         attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype=np.int)),
@@ -1575,7 +1597,7 @@ class StationaryRot(ExprPredicate):
         Non-robot related
     """
     #@profile
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.obj,  = params
         attr_inds = OrderedDict([(self.obj, [("rotation", np.array([0,1,2], dtype=np.int))])])
@@ -1597,7 +1619,7 @@ class StationaryBase(ExprPredicate):
             attr_dim[Int]: dimension of robot attribute
     """
     #@profile
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.robot,  = params
         self.attr_inds =  OrderedDict([(self.robot, [('pose', np.array([0,1,2], dtype=np.int))])])
@@ -1620,7 +1642,7 @@ class StationaryBasePos(ExprPredicate):
             attr_dim[Int]: dimension of robot attribute
     """
     #@profile
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.robot,  = params
         self.attr_dim = 2
@@ -1643,7 +1665,7 @@ class StationaryArms(ExprPredicate):
             attr_dim[Int]: dimension of robot attribute
     """
     #@profile
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.robot,  = params
         attr_inds = self.attr_inds
@@ -1667,7 +1689,7 @@ class StationaryArm(ExprPredicate):
             attr_dim[Int]: dimension of robot attribute
     """
     #@profile
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.robot,  = params
         if not hasattr(self, 'arm'): self.arm = self.robot.geom.arms[0]
@@ -1680,12 +1702,12 @@ class StationaryArm(ExprPredicate):
         self.spacial_anchor = False
 
 class StationaryLeftArm(StationaryArm):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         self.arm = 'left'
         super(StationaryLeftArm, self).__init__(name, params, expected_param_types, env)
 
 class StationaryRightArm(StationaryArm):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         self.arm = 'right'
         super(StationaryRightArm, self).__init__(name, params, expected_param_types, env)
 
@@ -1778,7 +1800,7 @@ class StationaryNEq(ExprPredicate):
         self.spacial_anchor = False
 
 class StationaryXZ(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.obj,  = params
         attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,2], dtype=np.int))])])
@@ -1791,7 +1813,7 @@ class StationaryXZ(ExprPredicate):
         self._init_include = False
 
 class StationaryYZ(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.obj,  = params
         attr_inds = OrderedDict([(self.obj, [("pose", np.array([1,2], dtype=np.int))])])
@@ -1804,7 +1826,7 @@ class StationaryYZ(ExprPredicate):
         self._init_include = False
 
 class StationaryXY(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.obj,  = params
         attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1], dtype=np.int))])])
@@ -1840,7 +1862,7 @@ class GraspValid(ExprPredicate):
 
 
 class SlideDoorAt(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         assert params[1].geom.hinge_type == 'prismatic'
         self.handle, self.door = params
@@ -1869,7 +1891,7 @@ class SlideDoorAt(ExprPredicate):
 
 
 class OpenSlideDoorAt(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         assert params[1].geom.hinge_type == 'prismatic'
         self.handle, self.door = params
@@ -1901,7 +1923,7 @@ class OpenSlideDoorAt(ExprPredicate):
 
 
 class CloseSlideDoorAt(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         assert params[1].geom.hinge_type == 'prismatic'
         self.handle, self.door = params
@@ -1933,7 +1955,7 @@ class CloseSlideDoorAt(ExprPredicate):
 
 
 class SlideDoorAtOpen(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         assert params[1].geom.hinge_type == 'prismatic'
         self.handle, self.door = params
@@ -1963,7 +1985,7 @@ class SlideDoorAtOpen(ExprPredicate):
 
 
 class SlideDoorAtClose(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         assert params[1].geom.hinge_type == 'prismatic'
         self.handle, self.door = params
@@ -1996,7 +2018,7 @@ class SlideDoorAtClose(ExprPredicate):
 
 
 class SlideDoorOpen(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         assert params[1].geom.hinge_type == 'prismatic'
         self.handle, self.door = params
@@ -2026,7 +2048,7 @@ class SlideDoorOpen(ExprPredicate):
 
 
 class SlideDoorClose(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         assert params[1].geom.hinge_type == 'prismatic'
         self.handle, self.door = params
@@ -2058,7 +2080,7 @@ class SlideDoorClose(ExprPredicate):
 
 
 class InSlideDoor(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         assert params[1].geom.hinge_type == 'prismatic'
         self.obj, self.door = params
@@ -2094,7 +2116,7 @@ class InSlideDoor(ExprPredicate):
 
 class Stacked(ExprPredicate):
     #@profile
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.base_obj = params
         h1 = self.obj.geom.height if hasattr(self.obj.geom, 'height') else self.obj.geom.radius
@@ -3856,7 +3878,7 @@ class DeskHeightBlock(ExprPredicate):
         return not negated
 
 class AboveTable(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.obj, = params
         attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype=np.int))])])
@@ -3872,7 +3894,7 @@ class AboveTable(ExprPredicate):
         self._init_include = False
 
 class LiftedAboveTable(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.table = params
         attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype=np.int))]),
@@ -3889,7 +3911,7 @@ class LiftedAboveTable(ExprPredicate):
         self.spacial_anchor = True
 
 class Lifted(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.robot = params
         attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype=np.int))])])
@@ -3913,7 +3935,7 @@ class Lifted(ExprPredicate):
         self._init_include = False
 
 class InReach(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.robot = params
         attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype=np.int))])])
@@ -3934,7 +3956,7 @@ class InReach(ExprPredicate):
         self._init_include = False
 
 class Stackable(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.item = params
         attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype=np.int))])])
@@ -3953,7 +3975,7 @@ class Stackable(ExprPredicate):
         self._init_include = True
 
 class OffDesk(ExprPredicate):
-    def __init__(self, name, params, expected_param_types, env=None):
+    def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.robot = params
         attr_inds = OrderedDict([(self.obj, [("pose", np.array([0], dtype=np.int))])])

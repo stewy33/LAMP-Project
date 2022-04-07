@@ -7,12 +7,11 @@ import queue
 import random
 import sys
 import time
-from software_constants import *
 
 from PIL import Image
 from scipy.cluster.vq import kmeans2 as kmeans
-import tensorflow as tf
 
+from opentamp.software_constants import *
 from opentamp.core.internal_repr.plan import Plan
 import opentamp.core.util_classes.transform_utils as T
 from opentamp.policy_hooks.sample import Sample

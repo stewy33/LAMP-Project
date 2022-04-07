@@ -4,7 +4,7 @@ import os
 import queue
 import time
 
-import torch.utils.data.Dataset as TorchDataset
+from torch.utils.data import Dataset as TorchDataset
 
 from opentamp.policy_hooks.data_buffer import DataBuffer
 

@@ -9,8 +9,7 @@ import os, psutil
 
 import torch
 
-from opentamp.policy_hooks.control_attention_policy_opt import ControlAttentionPolicyOpt
-from opentamp.policy_hooks.msg_classes import *
+from opentamp.policy_hooks.policy_opt import PolicyOpt
 from opentamp.policy_hooks.queued_dataset import QueuedDataset
 from opentamp.policy_hooks.utils.policy_solver_utils import *
 

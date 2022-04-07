@@ -52,6 +52,7 @@ class ExprPredicate(Predicate):
         active_range=(0, 0),
         tol=DEFAULT_TOL,
         priority=0,
+        debug=False,
     ):
         """
         attr2inds is a dictionary that maps each parameter name to a

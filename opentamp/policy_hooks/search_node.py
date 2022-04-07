@@ -1,6 +1,6 @@
-from core.internal_repr.state import State
-from core.internal_repr.problem import Problem
-from core.util_classes.learning import PostLearner
+from opentamp.core.internal_repr.state import State
+from opentamp.core.internal_repr.problem import Problem
+from opentamp.core.util_classes.learning import PostLearner
 import copy
 import functools
 import random

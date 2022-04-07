@@ -28,24 +28,15 @@ import random
 import numpy as np
 
 import opentamp.software_constants as software_constants
-# from gps.algorithm.cost.cost_utils import *
-
-from opentamp.policy_hooks.control_attention_policy_opt import ControlAttentionPolicyOpt
-from opentamp.policy_hooks.mcts import MCTS
+from opentamp.policy_hooks.policy_opt import PolicyOpt
 from opentamp.policy_hooks.utils.policy_solver_utils import *
-import policy_hooks.utils.policy_solver_utils as utils
-from opentamp.policy_hooks.task_net import * 
-from opentamp.policy_hooks.mcts import MCTS
-from opentamp.policy_hooks.state_traj_cost import StateTrajCost
-from opentamp.policy_hooks.action_traj_cost import ActionTrajCost
+import opentamp.policy_hooks.utils.policy_solver_utils as utils
 from opentamp.policy_hooks.utils.load_task_definitions import *
 from opentamp.policy_hooks.policy_server import PolicyServer
 from opentamp.policy_hooks.rollout_server import RolloutServer
 from opentamp.policy_hooks.motion_server import MotionServer
 from opentamp.policy_hooks.task_server import TaskServer
-from opentamp.policy_hooks.human_labels.label_server import LabelServer
-from opentamp.policy_hooks.tf_models import tf_network, multi_modal_network_fp, fp_cont_network
-import policy_hooks.hl_retrain as hl_retrain
+import opentamp.policy_hooks.hl_retrain as hl_retrain
 from opentamp.policy_hooks.utils.load_agent import *
 
 

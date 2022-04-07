@@ -15,18 +15,17 @@ import xml.etree.ElementTree as xml
 
 from sco_py.expr import *
 
-import core.util_classes.common_constants as common_const
-import pma.backtrack_ll_solver_gurobi as bt_ll
-from pma.pr_graph import *
+import opentamp.core.util_classes.common_constants as common_const
+import opentamp.pma.backtrack_ll_solver_OSQP as bt_ll
+from opentamp.pma.pr_graph import *
 import pybullet as p
 
-from core.util_classes.namo_predicates import dsafe
 from opentamp.policy_hooks.agent import Agent
 from opentamp.policy_hooks.sample import Sample
 from opentamp.policy_hooks.sample_list import SampleList
 from opentamp.policy_hooks.save_video import save_video
 from opentamp.policy_hooks.utils.policy_solver_utils import *
-import policy_hooks.utils.policy_solver_utils as utils
+import opentamp.policy_hooks.utils.policy_solver_utils as utils
 from opentamp.policy_hooks.utils.tamp_eval_funcs import *
 from opentamp.policy_hooks.utils.load_task_definitions import *
 
@@ -149,6 +148,7 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
         self.opt_wt = self.master_config['opt_wt']
         self.incl_init_obs = self.master_config.get('incl_init_obs', False)
         self.incl_trans_obs = self.master_config.get('incl_trans_obs', False)
+        self.incl_grip_obs = self.master_config.get('incl_grip_obs', False)
 
         # TAMP solver info
         bt_ll.COL_COEFF = self.master_config['col_coeff']
@@ -586,19 +586,6 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
         self.x0[cond] = self.init_vecs[cond][:self.symbolic_bound]
         self.target_vecs[cond] = np.zeros((self.target_dim,))
         prim_choices = self.prob.get_prim_choices(self.task_list)
-        if self.swap:
-            objs = self.prim_choices[OBJ_ENUM]
-            inds = list(range(len(objs)))
-            for i in range(len(objs)):
-                ind = inds.pop(np.random.randint(len(objs)))
-                if i == ind:
-                    inds.append(ind)
-                    continue
-                pos1_inds = self.state_inds[objs[i], 'pose']
-                targ = '{}_end_target'.format(objs[ind])
-                pos2_inds = self.target_inds[targ, 'value']
-                noise = np.random.normal(0, 0.1, len(pos2_inds))
-                self.init_vecs[cond][pos1_inds] = self.targets[cond][targ] + noise
 
         if OBJ_ENUM in prim_choices and curric_step > 0:
             i = 0
@@ -883,14 +870,8 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
             perm = {}
             perm_tasks = tasks
             perm_targets = targets
-        
-        #for param in plan.params.values():
-        #    targ = '{}_init_target'.format(param.name)
-        #    if targ in plan.params:
-        #        plan.params[targ].value[:,0] = param.pose[:,0]
-        #        if hasattr(param, 'rotation'):
-        #            plan.params[targ].rotation[:,0] = param.rotation[:,0]
-
+       
+        dummy_sample = Sample(self)
         smooth_cnts = []
         self.reset_to_state(x0)
         if hist_info is not None:
@@ -937,7 +918,7 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
             dummy_sample.targets = targets
             pre_cost = self.precond_cost(dummy_sample, task, 0)
             if pre_cost > 1e-4:
-                print('FAILED EXECUTION OF PRECONDITIONS', plan.actions[a], plan.actions)
+                print('FAILED EXECUTION OF PRECONDITIONS', plan.actions[a], plan.actions, task)
                 self.precond_cost(dummy_sample, task, 0, debug=True)
                 return False, False, path, info
 
@@ -1002,7 +983,7 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
                 if not success:
                     self.n_fail_opt[task] = self.n_fail_opt.get(task, 0) + 1
                     try:
-                        print('FAILED TO SOLVE:', plan.actions[a], plan.get_failed_preds((act_st, act_et)), used_rollout)
+                        print('FAILED TO SOLVE:', a, plan.actions[a], plan.get_failed_preds((act_st, act_et)), used_rollout)
                     except Exception as e:
                         print('FAILED, Error IN FAIL CHECK', e)
 
@@ -1163,9 +1144,10 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
                 x1 = path[0].get_X(t=0)
                 x2 = path[-1].end_state
                 s._postsuc = False
-                cost = self.postcond_cost(end_s, task, end_s.T-1, debug=True, x0=base_x0, tol=1e-3)
-                state_dict = {(pname, aname): (x1[self.state_inds[pname, aname]], x2[self.state_inds[pname, aname]], plan.params[pname].pose[:,st], plan.params[pname].pose[:,et]) for (pname, aname) in self.state_inds}
-                if save: print('Ran opt path w/postcond failure?', task, plan.actions[anum], state_dict, self.process_id)
+                cost = self.postcond_cost(end_s, task, end_s.T-1, debug=(ind==0), x0=base_x0, tol=1e-3)
+                #state_dict = {(pname, aname): (x1[self.state_inds[pname, aname]], x2[self.state_inds[pname, aname]], getattr(plan.params[pname], aname)[:,st], getattr(plan.params[pname], aname)[:,et]) for (pname, aname) in self.state_inds}
+                #if ind == 0 and save: print('Ran opt path w/postcond failure?', task, plan.actions[anum], state_dict, self.process_id)
+                if ind == 0 and save: print('Ran opt path w/postcond failure?', task, plan.actions[anum], self.process_id)
 
         static_x0 = self.get_state().copy()
         static_hist = self._x_delta.copy()
@@ -1284,7 +1266,7 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
         failed_preds = plan.get_failed_preds(active_ts=active_ts, priority=3, tol=tol)
         failed_preds = [p for p in failed_preds if ((p[1]._rollout or not type(p[1].expr) is EqExpr) and not p[1]._nonrollout)]
         if debug:
-            print('FAILED:', failed_preds, plan.actions, self.process_id)
+            print('FAILED:', failed_preds, plan.actions, task, self.process_id)
         return failed_preds
 
 
@@ -1406,17 +1388,7 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
 
 
     def get_random_initial_state_vec(self, config, plans, dX, state_inds, n=1):
-        xs, targets = self.prob.get_random_initial_state_vec(config, plans, dX, state_inds, n)
-        if self.swap:
-            objs = self.prim_choices[OBJ_ENUM]
-            inds = np.random.permutation(len(objs))
-            for i, ind in enumerate(inds):
-                if i == ind: continue
-                pos1_inds = self.state_inds[objs[i], 'pose']
-                targ = '{}_end_target'.format(objs[ind])
-                pos2_inds = self.target_inds[targ, 'value']
-                noise = np.random.normal(0, 0.1, len(pos2_inds))
-                xs[0][pos1_inds] = targets[0][targ] + noise
+        xs, targets = self.prob.get_random_initial_state_vec(config, False, dX, state_inds, n)
         return xs, targets
 
     

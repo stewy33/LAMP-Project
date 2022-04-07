@@ -27,7 +27,7 @@ class ParseProblemConfig(object):
         openrave_bodies={},
         reuse_params=None,
         initial=None,
-        visual=True,
+        visual=False,
         use_tf=False,
         sess=None,
     ):
@@ -35,18 +35,15 @@ class ParseProblemConfig(object):
         params = {}
 
         if env is None:
+            try:
+                P.disconnect()
+            except:
+                pass
+
             if not visual:
-                try:
-                    P.disconnect()
-                except:
-                    pass
                 env = P.connect(P.DIRECT)
                 P.resetSimulation()
             else:
-                try:
-                    P.disconnect()
-                except:
-                    pass
                 pbv = PyBulletViewer()
                 pbv = pbv.create_viewer()
                 env = pbv.env
@@ -133,20 +130,17 @@ class ParseProblemConfig(object):
                             "Parameter '%s' for predicate type '%s' not defined in domain file."
                             % (n, p_name)
                         )
-                try:
-                    init_preds.add(
-                        domain.pred_schemas[p_name].pred_class(
-                            name="initpred%d" % i,
-                            params=p_objs,
-                            expected_param_types=domain.pred_schemas[
-                                p_name
-                            ].expected_params,
-                            env=env,
-                        )
+
+                init_preds.add(
+                    domain.pred_schemas[p_name].pred_class(
+                        name="initpred%d" % i,
+                        params=p_objs,
+                        expected_param_types=domain.pred_schemas[
+                            p_name
+                        ].expected_params,
+                        env=env,
                     )
-                except TypeError as e:
-                    print(e)
-                    print(("type error for {}".format(pred)))
+                )
 
         elif deriv_preds:
             for i, pred in enumerate(deriv_preds.split(",")):
@@ -163,20 +157,16 @@ class ParseProblemConfig(object):
                             "Parameter '%s' for predicate type '%s' not defined in domain file."
                             % (n, p_name)
                         )
-                try:
-                    init_preds.add(
-                        domain.pred_schemas[p_name].pred_class(
-                            name="initpred%d" % i,
-                            params=p_objs,
-                            expected_param_types=domain.pred_schemas[
-                                p_name
-                            ].expected_params,
-                            env=env,
-                        )
+                init_preds.add(
+                    domain.pred_schemas[p_name].pred_class(
+                        name="initpred%d" % i,
+                        params=p_objs,
+                        expected_param_types=domain.pred_schemas[
+                            p_name
+                        ].expected_params,
+                        env=env,
                     )
-                except TypeError as e:
-                    print(e)
-                    print(("type error for {}".format(pred)))
+                )
                 # except Exception as e:
                 #    print(e)
                 #    import ipdb; ipdb.set_trace()
@@ -199,16 +189,12 @@ class ParseProblemConfig(object):
                             "Parameter '%s' for predicate type '%s' not defined in domain file."
                             % (n, p_name)
                         )
-                try:
-                    invar_pred = domain.pred_schemas[p_name].pred_class(name="invariantpred%d"%i,
-                                                                              params=p_objs,
-                                                                              expected_param_types=domain.pred_schemas[p_name].expected_params,
-                                                                              env=env)
-                    invariant_set.add(invar_pred)
-                    init_preds.add(invar_pred)
-                except TypeError as e:
-                    print(e)
-                    print(("type error for {}".format(pred)))
+                invar_pred = domain.pred_schemas[p_name].pred_class(name="invariantpred%d"%i,
+                                                                          params=p_objs,
+                                                                          expected_param_types=domain.pred_schemas[p_name].expected_params,
+                                                                          env=env)
+                invariant_set.add(invar_pred)
+                init_preds.add(invar_pred)
 
         # use params and initial preds to create an initial State object
         initial_state = state.State(

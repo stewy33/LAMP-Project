@@ -15,17 +15,22 @@ import traceback
 
 import numpy as np
 
-import opentamp.pma.backtrack_ll_solver_gurobi as bt_ll
 from opentamp.policy_hooks.sample import Sample
 from opentamp.policy_hooks.utils.policy_solver_utils import *
 import opentamp.policy_hooks.utils.policy_solver_utils as utils
 from opentamp.policy_hooks.sample import Sample
-from opentamp.policy_hooks.policy_solver import get_base_solver
 from opentamp.policy_hooks.utils.load_task_definitions import *
 
 
 def load_agent(config):
     prob = config['prob']
+    use_grb = config.get('use_grb', False)
+
+    if use_grb:
+        import opentamp.pma.backtrack_ll_solver_gurobi as bt_ll
+    else:
+        import opentamp.pma.backtrack_ll_solver_OSQP as bt_ll
+
     bt_ll.COL_COEFF = config.get('col_coeff', 0.)
     time_limit = config.get('time_limit', 14400)
     conditions = config['num_conds']

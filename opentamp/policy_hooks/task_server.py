@@ -7,9 +7,9 @@ import queue
 import random
 import sys
 import time
-from software_constants import *
+from opentamp.software_constants import *
 
-from core.internal_repr.plan import Plan
+from opentamp.core.internal_repr.plan import Plan
 from opentamp.policy_hooks.sample import Sample
 from opentamp.policy_hooks.sample_list import SampleList
 

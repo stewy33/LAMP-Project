@@ -198,6 +198,10 @@ class Plan(object):
             active_ts = (0, self.horizon-1)
         failed = []
         for a in self.actions:
+            st, et = a.active_timesteps
+            if active_ts[1] > active_ts[0]:
+                if st >= active_ts[1]: continue
+                if et <= active_ts[0]: continue
             failed.extend(a.get_failed_preds(active_ts, priority, tol=tol, incl_negated=incl_negated))
         return failed
 
@@ -206,10 +210,6 @@ class Plan(object):
             active_ts = (0, self.horizon-1)
         failed = []
         for a in self.actions:
-            st, et = a.active_timesteps
-            if active_ts[1] > active_ts[0]:
-                if st >= active_ts[1]: continue
-                if et <= active_ts[0]: continue
             failed.append(a.get_failed_preds(active_ts, priority, tol=tol))
         return failed
 

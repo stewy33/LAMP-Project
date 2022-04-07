@@ -216,17 +216,13 @@ class OpenRAVEViewer(Viewer):
                 continue
 
 class PyBulletViewer(Viewer):
-    def __init__(self, envid=None, visual=None):
+    def __init__(self, envid=None):
         if envid is None:
-            # If a visual doesn't yet exist, make one by checking the Display
-            if visual is None:
-                visual = len(os.environ.get('DISPLAY', '')) > 0
             if not P.getConnectionInfo()['isConnected']:
-                server = P.GUI if visual else P.DIRECT
+                server = P.GUI
                 envid = P.connect(server)
                 P.resetSimulation()
 
-        self.visual = visual
         self.env = envid
         self.name_to_rave_body = {}
         PyBulletViewer._viewer = self

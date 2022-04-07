@@ -10,9 +10,9 @@ import time
 import traceback
 
 import numpy as np
-from policy_hooks.utils.policy_solver_utils import *
-from policy_hooks.tf_policy import TfPolicy
-from policy_hooks.torch_models import *
+from opentamp.policy_hooks.utils.policy_solver_utils import *
+#from opentamp.policy_hooks.tf_policy import TfPolicy
+from opentamp.policy_hooks.torch_models import *
 
 MAX_UPDATE_SIZE = 10000
 SCOPE_LIST = ['primitive', 'cont']

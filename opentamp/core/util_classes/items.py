@@ -1,7 +1,7 @@
 import pybullet as p
-import os
 
 import opentamp
+import opentamp.core.util_classes.common_constants as const
 
 
 class Item(object):
@@ -21,7 +21,7 @@ class Item(object):
 
 
 class XMLItem(Item):
-    def __init__(self, shape):
+    def __init__(self, shape, col_links):
         super(XMLItem, self).__init__()
         self.initialized = False
         self._type = "xml_item"
@@ -29,6 +29,7 @@ class XMLItem(Item):
         self.shape = shape
         self.grasp_point = [0., 0., 0.]
         self.dof_map = {}
+        self.col_links = col_links
 
     def is_initialized(self):
         return self.initialized
@@ -133,6 +134,8 @@ class Sphere(Item):
         self.color = "blue"
         self._type = "sphere"
         self.radius = float(radius)
+        self.near_coeff = 2.5
+        self.eereachable_coeff = 2e0
 
 class Obstacle(Item):
     """
@@ -174,9 +177,15 @@ class Box(Obstacle):
         self.height = dim[2]
         z = max(0, self.height - 0.03)
         self.grasp_point = [0., 0., z]
-        self.near_coeff = 1.2
-        if self.height < 0.02:
-            self.near_coeff = 0.8
+        self.eereachable_coeff = 1.1
+        self.near_coeff = 1.2 # 1.5
+        max_dim = max(dim)
+        if max_dim <= 0.02:
+            self.near_coeff = 0.6 # 0.8
+            self.eereachable_coeff = 8e-1
+        elif self.height <= 0.02:
+            self.near_coeff = 0.5 # 0.6
+            self.eereachable_coeff = 1.8e0
 
 class Basket(Item):
     """
@@ -193,28 +202,50 @@ class Basket(Item):
 
 class Door(XMLItem):
     def __init__(self, door_type):
-        import opentamp
-
         self.handle_orn = [0., 0., 0.]
+        self.in_orn = [0., 0., 0.]
         if door_type.lower() == 'desk_drawer':
             shape = opentamp.__path__[0] + '/robot_info/robodesk/desk_drawer.xml'
-            self.handle_pos = [0., -0.36, 0.01]
+            #self.handle_pos = [0., -0.36, 0.01]
+            self.handle_pos = const.DRAWER_HANDLE_POS
+            self.handle_orn = const.DRAWER_HANDLE_ORN
+            #self.in_pos = [0., -0.2, 0.05]
+            self.in_pos = const.IN_DRAWER_POS
+            self.in_orn = const.IN_DRAWER_ORN
             self.hinge_type = 'prismatic'
-            self.closed_val = 0.
-            self.open_val = -0.23 #-0.48
+            self.close_val = 0.
+            self.open_val = -0.18 #-0.18
+            self.open_thresh = -0.11
+            self.close_thresh = -0.08
+            self.close_handle_pos = [0., -0.33, -0.03]
+            self.open_handle_pos = [0., -0.33, -0.03]
+            self.push_open_region = [0.02, 0.01, 0.02]
+            self.push_close_region = [0.08, 0.02, 0.02]
             self.open_dir = [0., -1., 0.]
+            self.width = 0.1
+            col_links = set([-1, 0, 1])
         elif door_type.lower() == 'desk_shelf':
             shape = opentamp.__path__[0] + '/robot_info/robodesk/desk_shelf.xml'
             self.hinge_type = 'prismatic'
-            self.handle_pos = [-0.3, -0.07, 1.005]
-            self.handle_orn = [1.57, 1.57, 0.]
-            self.closed_val = 0.
-            self.open_val = 0.6
-            self.open_dir = [1., 0., 0.]
+            self.handle_pos = const.SHELF_HANDLE_POS 
+            self.in_pos = const.IN_SHELF_POS
+            self.handle_orn = const.SHELF_HANDLE_ORN
+            self.in_orn = const.IN_SHELF_ORN
+            self.close_handle_pos = [-0.33, -0.03, 0.935]
+            self.open_handle_pos = [-0.27, -0.03, 0.935]
+            self.push_open_region = [0.02, 0.02, 0.07]
+            self.push_close_region = [0.02, 0.02, 0.07]
+            self.width = 0.15
+            self.close_val = 0.6
+            self.open_val = 0.
+            self.open_thresh = 0.2
+            self.close_thresh = 0.4
+            self.open_dir = [-1., 0., 0.]
+            col_links = set([-1, 0, 1, 2])
         else:
             raise NotImplementedError()
 
-        super(Door, self).__init__(shape)
+        super(Door, self).__init__(shape, col_links)
         self._type = "door"
 
     def setup(self, robot=None):
@@ -245,3 +276,4 @@ class Door(XMLItem):
                 break
 
         return self.id
+

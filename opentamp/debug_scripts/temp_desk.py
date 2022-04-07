@@ -4,7 +4,7 @@ import random
 
 import robodesk
 
-import main
+import opentamp.main as main
 from opentamp.core.parsing import parse_domain_config, parse_problem_config
 import opentamp.core.util_classes.common_constants as const
 from opentamp.core.util_classes.robots import Baxter
@@ -12,9 +12,9 @@ from opentamp.core.util_classes.openrave_body import *
 from opentamp.core.util_classes.transform_utils import *
 from opentamp.pma.hl_solver import *
 from opentamp.pma.pr_graph import *
-from opentamp.pma import backtrack_ll_solver as bt_ll
+from opentamp.pma import backtrack_ll_solver_OSQP as bt_ll
 from opentamp.pma.robot_solver import RobotSolverOSQP
-import copentamp.ore.util_classes.transform_utils as T
+import opentamp.core.util_classes.transform_utils as T
 
 from opentamp.policy_hooks.multiprocess_main import load_config, setup_dirs, DIR_KEY
 from opentamp.policy_hooks.run_training import argsparser
@@ -23,7 +23,7 @@ import opentamp.policy_hooks.robodesk.hyp as hyp
 import opentamp.policy_hooks.robodesk.desk_prob as prob
 
 args = argsparser()
-args.config = 'policy_hooks.robodesk.hyp'
+args.config = 'opentamp.policy_hooks.robodesk.hyp'
 args.render = True
 
 base_config = hyp.refresh_config()
@@ -58,11 +58,11 @@ except Exception as e:
 #const.EEREACHABLE_ROT_COEFF = 8e-3
 bt_ll.DEBUG = True
 openrave_bodies = None
-domain_fname = "../domains/robot_domain/right_desk.domain"
-prob = "../domains/robot_domain/probs/robodesk_prob.prob"
+domain_fname = opentamp.__path__[0] + "/domains/robot_manipulation_domain/right_desk.domain"
+prob = opentamp.__path__[0] + "/domains/robot_manipulation_domain/probs/robodesk_prob.prob"
 d_c = main.parse_file_to_dict(domain_fname)
 domain = parse_domain_config.ParseDomainConfig.parse(d_c)
-hls = FFSolver(d_c)
+hls = FDSolver(d_c)
 p_c = main.parse_file_to_dict(prob)
 visual = True # len(os.environ.get('DISPLAY', '')) > 0
 #visual = False

@@ -7,12 +7,13 @@ import queue
 import random
 import sys
 import time
-from software_constants import *
 
 from PIL import Image
 
 from sco_py.expr import *
-from core.internal_repr.plan import Plan
+
+from opentamp.software_constants import *
+from opentamp.core.internal_repr.plan import Plan
 from opentamp.policy_hooks.sample import Sample
 from opentamp.policy_hooks.sample_list import SampleList
 from opentamp.policy_hooks.utils.policy_solver_utils import *
