@@ -37,6 +37,7 @@ To install and begin using OpenTAMP on an Ubuntu (>14.04) Linux Machine, follow 
 To install and begin using OpenTAMP on a Mac, follow these steps
 1. Install Poetry by following instructions from [here](https://python-poetry.org/docs/#installation)
 1. Run ```brew install cmake glfw hdf5```
+    1. For an M1 chip, you may need to install x86 versions of various packages. Reference [here](https://medium.com/mkdir-awesome/how-to-install-x86-64-homebrew-packages-on-apple-m1-macbook-54ba295230f) for a guide on how to do so
 1. Install [MuJoCo](https://mujoco.org/)
     1. Download the correct MuJoCo binary for your OS from [here](https://mujoco.org/download). Be sure to use version 2.1.0 and not a higher version!
     1. Extract the downloaded `mujoco210` directory into `~/.mujoco/mujoco210`
@@ -45,11 +46,10 @@ To install and begin using OpenTAMP on a Mac, follow these steps
 1. Clone the OpenTAMP repository from GitHub to a folder of your choice: `https://github.com/Algorithmic-Alignment-Lab/OpenTAMP.git`
     1. Double-check that you have downloaded all the LFS files by running `git lfs pull` from inside the local repository folder after you've cloned the repo!
 1. `cd` into the newly-installed library and run `poetry shell`, then `poetry install`
-1. Now, you should have a nice [virtual environment](https://realpython.com/python-virtual-environments-a-primer/) with python configured to run OpenTAMP! Whenever you want to use this, simply `cd` into the OpenTAMP folder and then run `poetry shell`
 1. Setup Fast Downward (see [here](#fdsetup)). The provided binary Fast-Forward was compiled against Ubuntu, and unforunately Fast-Forward is written against an old standard of C that can no longer compile. 
+1. Now, you should have a nice [virtual environment](https://realpython.com/python-virtual-environments-a-primer/) with python configured to run OpenTAMP! Whenever you want to use this, simply `cd` into the OpenTAMP folder and then run `poetry shell`
 1. (Optional) If you'd like to use [Gurobi](https://www.gurobi.com/) as a backend solver for motion-planning problems, then follow steps [here](https://www.gurobi.com/wp-content/plugins/hd_documentations/content/pdf/quickstart_mac_8.1.pdf) to obtain and activate a license (note: free licenses are available for students and academic users!)
     1. Note that for obtaining a license, you must either install gurobi [via conda or from source](https://support.gurobi.com/hc/en-us/articles/360044290292-How-do-I-install-Gurobi-for-Python-)
-1. For an M1 chip, you may need to install x86 versions of various packages. Reference [here](https://medium.com/mkdir-awesome/how-to-install-x86-64-homebrew-packages-on-apple-m1-macbook-54ba295230f) for a guide on how to do so
 
 
 ### <a name="fdsetup"></a>Setup FastDownward Planner
