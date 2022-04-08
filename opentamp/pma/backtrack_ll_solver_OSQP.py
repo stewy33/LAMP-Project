@@ -923,6 +923,7 @@ class BacktrackLLSolverOSQP(LLSolverOSQP):
             ## only add an action
             if action_start >= active_ts[1]:
                 continue
+
             if action_end <= active_ts[0]:
                 continue
 
@@ -941,6 +942,7 @@ class BacktrackLLSolverOSQP(LLSolverOSQP):
                         add_nonlin=add_nonlin,
                         verbose=verbose,
                     )
+
                 if action_end <= active_ts[1]:
                     self._add_pred_dict(
                         pred_dict,
@@ -949,6 +951,7 @@ class BacktrackLLSolverOSQP(LLSolverOSQP):
                         add_nonlin=add_nonlin,
                         verbose=verbose,
                     )
+                    
             ## add all of the linear ineqs
             timesteps = list(range(max(action_start, active_ts[0]),
                               min(action_end, active_ts[1])+1))

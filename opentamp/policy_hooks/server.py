@@ -16,7 +16,6 @@ from opentamp.core.internal_repr.plan import Plan
 from opentamp.policy_hooks.sample import Sample
 from opentamp.policy_hooks.sample_list import SampleList
 from opentamp.policy_hooks.utils.policy_solver_utils import *
-from opentamp.policy_hooks.msg_classes import *
 from opentamp.policy_hooks.save_video import save_video
 from opentamp.policy_hooks.search_node import *
 

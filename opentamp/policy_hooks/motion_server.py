@@ -17,7 +17,6 @@ import opentamp.core.util_classes.transform_utils as T
 from opentamp.policy_hooks.sample import Sample
 from opentamp.policy_hooks.sample_list import SampleList
 from opentamp.policy_hooks.utils.policy_solver_utils import *
-from opentamp.policy_hooks.msg_classes import *
 from opentamp.policy_hooks.server import Server
 from opentamp.policy_hooks.search_node import *
 

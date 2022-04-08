@@ -13,7 +13,7 @@ from opentamp.core.util_classes.namo_grip_predicates import (
 )
 
 try:
-    from opentamp.pma import backtrack_ll_solver_gurobi as backtrack_ll_solver
+    from opentamp.pma import backtrack_ll_solver_gurobi as backtrack_ll_solver_gurobi
     HAS_GRB = True
 except:
     HAS_GRB = False
