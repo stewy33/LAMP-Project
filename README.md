@@ -1,7 +1,7 @@
 # openTAMP
 OpenTAMP is an open-source library for optimization-based Task and Motion Planning (TAMP), and [Guided Imitation of TAMP](https://openreview.net/forum?id=-JwmfQC6IRt) with Python. OpenTAMP aims to make defining and solving new TAMP problems both easy and straightforward, even for users familiar with only the high-level ideas behind TAMP.
 
-## Installation and Setup
+## Installation and Setup (Ubuntu)
 To install and begin using OpenTAMP on an Ubuntu (>14.04) Linux Machine, follow these steps:
 1. Install Poetry by following instructions from [here](https://python-poetry.org/docs/#installation)
 1. If you're on Ubuntu 20.04 or later, make sure you have Python 3.7 available. Run the below commands if you're not sure
@@ -29,6 +29,14 @@ To install and begin using OpenTAMP on an Ubuntu (>14.04) Linux Machine, follow 
 
 **ToDo: Might need to add baselines and h-baselines because they're currently in setup.sh**
 
+### <a name="fdsetup"></a>Setup FastDownward Planner
+The code provides wrappers to invoke the FastFoward and the FastDownward task planners. FastForward is provided through a pre-compiled binary and hence can be run without extra setup (but unfortunately only from Ubuntu).
+1. Move to the downward directory `cd opentamp/task_planners/downward`
+1. Run ```
+        git submodule init
+        git submodule update
+        ```
+1. Build the downward binary by executing `./build.py`
 
 ### Verify planning
 
@@ -39,6 +47,24 @@ This should take under a minute to run.
 
 ### Verify learning
 If you wish to train policies from the code, verify that a Mujoco key titled `mjkey.txt` is in your home directory an that `FULL_INSTALL=true` in `setup.sh`. Once this has completed, make sure you are on the virtual env (by running `tampenv`) and try running `test_training.sh`; this script will attempt to train policies for a two object pick-place problem with some default parameter settings. Once completed, is will generate some plots on performance and videos of rollouts into the `~/Dropbox` directory. Note the script will use about 16 proccesses, so it's reccomended to run it from at least an 8-physical core machine.
+
+
+### Installation and Setup (Mac)
+To install and begin using OpenTAMP on a Mac, follow these steps (for an M1 chip, you may need to install x86 versions like [here](https://medium.com/mkdir-awesome/how-to-install-x86-64-homebrew-packages-on-apple-m1-macbook-54ba295230f):
+1. Install Poetry by following instructions from [here](https://python-poetry.org/docs/#installation)
+1. Run ```brew install cmake glfw hdf5```
+1. Install [MuJoCo](https://mujoco.org/)
+    1. Download the correct MuJoCo binary for your OS from [here](https://mujoco.org/download). Be sure to use version 2.1.0 and not a higher version!
+    1. Extract the downloaded `mujoco210` directory into `~/.mujoco/mujoco210`
+    1. The first time you run the code, you may need to set the security permissions under settings to allow it to execute the mujoco binary
+1. Make sure you have [git lfs](https://git-lfs.github.com/) installed
+1. Clone the OpenTAMP repository from GitHub to a folder of your choice: `https://github.com/Algorithmic-Alignment-Lab/OpenTAMP.git`
+    1. Double-check that you have downloaded all the LFS files by running `git lfs pull` from inside the local repository folder after you've cloned the repo!
+1. `cd` into the newly-installed library and run `poetry shell`, then `poetry install`
+1. Now, you should have a nice [virtual environment](https://realpython.com/python-virtual-environments-a-primer/) with python configured to run OpenTAMP! Whenever you want to use this, simply `cd` into the OpenTAMP folder and then run `poetry shell`
+1. Follow the instructions to setup FastDownward as described [here](#fdsetup). Note you cannot use FastFoward (FF) on a Mac. The provided fast-forward binary was compiled against Ubuntum, and unforunately even the most recent versions of FastForward were written against an old standard of C that can no longer be compiled from a Mac. 
+1. (Optional) If you'd like to use [Gurobi](https://www.gurobi.com/) as a backend solver for motion-planning problems, then follow steps [here](https://www.gurobi.com/wp-content/plugins/hd_documentations/content/pdf/quickstart_mac_8.1.pdf) to obtain and activate a license (note: free licenses are available for students and academic users!)
+    1. Note that for obtaining a license, you must either install gurobi [via conda or from source](https://support.gurobi.com/hc/en-us/articles/360044290292-How-do-I-install-Gurobi-for-Python-)
 
 
 ## Code Overview
