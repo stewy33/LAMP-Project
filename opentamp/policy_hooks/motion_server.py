@@ -32,11 +32,30 @@ class MotionServer(Server):
         self.opt_wt = hyperparams['opt_wt']
         self.motion_log = LOG_DIR + hyperparams['weight_dir'] + '/MotionInfo_{0}_log.txt'.format(self.id)
         self.log_infos = []
-        self.infos = {'n_ff': 0, 'n_postcond': 0, 'n_precond': 0, 'n_midcond': 0, 'n_explore': 0, 'n_plans': 0}
+        self.infos = {'n_ff': 0, 
+                      'n_postcond': 0, 
+                      'n_precond': 0, 
+                      'n_midcond': 0, 
+                      'n_explore': 0, 
+                      'n_plans': 0}
+
         self.avgs = {key: [] for key in self.infos}
-        self.fail_infos = {'n_fail_ff': 0, 'n_fail_postcond': 0, 'n_fail_precond': 0, 'n_fail_midcond': 0, 'n_fail_explore': 0, 'n_fail_plans': 0}
+
+        self.fail_infos = {'n_fail_ff': 0, 
+                           'n_fail_postcond': 0, 
+                           'n_fail_precond': 0, 
+                           'n_fail_midcond': 0, 
+                           'n_fail_explore': 0, 
+                           'n_fail_plans': 0}
+
         self.fail_avgs = {key: [] for key in self.fail_infos}
-        self.fail_rollout_infos = {'n_fail_rollout_ff': 0, 'n_fail_rollout_postcond': 0, 'n_fail_rollout_precond': 0, 'n_fail_rollout_midcond': 0, 'n_fail_rollout_explore': 0}
+
+        self.fail_rollout_infos = {'n_fail_rollout_ff': 0, 
+                                   'n_fail_rollout_postcond': 0, 
+                                   'n_fail_rollout_precond': 0, 
+                                   'n_fail_rollout_midcond': 0, 
+                                   'n_fail_rollout_explore': 0}
+
         self.init_costs = []
         self.rolled_costs = []
         self.final_costs = []
@@ -48,11 +67,13 @@ class MotionServer(Server):
 
 
     def gen_plan(self, node):
-        node.gen_plan(self.agent.hl_solver, self.agent.openrave_bodies, self.agent.ll_solver)
+        node.gen_plan(self.agent.hl_solver, 
+                      self.agent.openrave_bodies, 
+                      self.agent.ll_solver)
+
         plan = node.curr_plan
         if type(plan) is str: return plan
-        if not len(plan.actions):
-            return plan
+        if not len(plan.actions): return plan
 
         for a in range(min(len(plan.actions), plan.start+1)):
             task = self.agent.encode_action(plan.actions[a])
@@ -60,18 +81,20 @@ class MotionServer(Server):
         
         plan.start = min(plan.start, len(plan.actions)-1)
         ts = (0, plan.actions[plan.start].active_timesteps[0])
+
         try:
             failed_prefix = plan.get_failed_preds(active_ts=ts, tol=1e-3)
         except Exception as e:
             failed_prefix = ['ERROR IN FAIL CHECK', e]
 
         if len(failed_prefix) and node.hl:
-            #print('BAD PREFIX! -->', plan.actions[:plan.start], 'FAILED', failed_prefix, node._trace)
+            print('BAD PREFIX! -->', plan.actions[:plan.start], 'FAILED', failed_prefix, node._trace)
             plan.start = 0
 
         ts = (0, plan.actions[plan.start].active_timesteps[0])
         if node.freeze_ts <= 0:
             set_params_attrs(plan.params, self.agent.state_inds, node.x0, ts[1])
+
         plan.freeze_actions(plan.start)
         cur_t = node.freeze_ts if node.freeze_ts >= 0 else 0
         return plan
@@ -136,48 +159,7 @@ class MotionServer(Server):
             self.plan_times.append(end_t-init_t)
             self.plan_times = self.plan_times[-5:]
 
-        self.n_failed += 0. if success else 1.
-        n_plans = self._hyperparams['policy_opt']['buffer_sizes']['n_plans']
-        with n_plans.get_lock():
-            n_plans.value += 1
-
-        if self.verbose and len(path):
-            if node.nodetype.find('dagger') >= 0 and np.random.uniform() < 0.05:
-                self.save_video(path, path[-1]._postsuc, lab='_suc_{}_dgr'.format(success))
-            elif np.random.uniform() < 0.05:
-                self.save_video(path, path[-1]._postsuc, lab='_suc_{}_opt'.format(success), annotate=True)
-            elif not success and np.random.uniform() < 0.5:
-                self.save_video(path, path[-1]._postsuc, lab='_suc_{}_opt_fail'.format(success), annotate=True)
-
-        if self.verbose and self.render:
-            for ind, batch in enumerate(info['to_render']):
-                for next_path in batch:
-                    if len(next_path):
-                        print('BACKUP VIDEO:', next_path[-1].task)
-                        self.save_video(next_path, next_path[-1]._postsuc, lab='_{}_backup_solve'.format(ind))
-
-        self.log_path(path, 10)
-        for step in path: step.source_label = node.nodetype
-        if success and len(path):
-            print(self.id, 'succ. refine', node.label, plan.actions[0].name, 'rollout succ:', path[-1]._postsuc, path[-1].success, 'goal:', self.agent.goal(0, path[-1].targets))
-
-        if len(path) and path[-1].success:
-            n_plans = self._hyperparams['policy_opt']['buffer_sizes']['n_total']
-            with n_plans.get_lock():
-                n_plans.value += 1
-
-        n_plan = self._hyperparams['policy_opt']['buffer_sizes']['n_plan_{}'.format(node.nodetype)]
-        with n_plan.get_lock():
-            n_plan.value += 1
-
-        if not success:
-            print('Opt failure from', node.label, node.nodetype)
-            n_fail = self._hyperparams['policy_opt']['buffer_sizes']['n_plan_{}_failed'.format(node.nodetype)]
-            with n_fail.get_lock():
-                n_fail.value += 1
-
-        if np.random.uniform() < 0.05 and success:
-            self.send_to_label(path, success)
+        self._log_solve_info(path, success, node, plan)
         return path, success, opt_suc
 
 
@@ -188,17 +170,31 @@ class MotionServer(Server):
             fail_pred = None
 
         if fail_pred is None:
-            print('Failure without failed constr?')
+            print('WARNING: Failure without failed constr?')
             return
 
         failed_preds = plan.get_failed_preds((prev_t, fail_step+fail_pred.active_range[1]), priority=-1)
         if len(failed_preds):
-            print('Refine failed with linear constr. viol.', node._trace, plan.actions, failed_preds, len(node.ref_traj), node.label)
+            print('Refine failed with linear constr. viol.', 
+                   node._trace, 
+                   plan.actions, 
+                   failed_preds, 
+                   len(node.ref_traj), 
+                   node.label,)
+
             return
 
-        print('Refine failed:', plan.get_failed_preds((0, fail_step+fail_pred.active_range[1])), fail_pred, fail_step, plan.actions, node.label, node._trace, prev_t)
-        if not node.hl: return
-        if not node.gen_child(): return
+        print('Refine failed:', 
+              plan.get_failed_preds((0, fail_step+fail_pred.active_range[1])), 
+              fail_pred, 
+              fail_step, 
+              plan.actions, 
+              node.label, 
+              node._trace, 
+              prev_t,)
+
+        if not node.hl and not node.gen_child(): return
+
         n_problem = node.get_problem(fail_step, fail_pred, fail_negated)
         abs_prob = self.agent.hl_solver.translate_problem(n_problem, goal=node.concr_prob.goal)
         prefix = node.curr_plan.prefix(fail_step)
@@ -235,10 +231,12 @@ class MotionServer(Server):
                 data = self.agent.get_opt_samples(task, clear=True)
                 opt_samples = [sample for sample in data if not len(sample.source_label) or sample.source_label.find('opt') >= 0]
                 expl_samples = [sample for sample in data if len(sample.source_label) and sample.source_label.find('opt') < 0]
+
                 if len(opt_samples):
-                    self.alg_map[task]._update_policy_no_cost(opt_samples, label='optimal', inv_cov=inv_cov)
+                    self.update_policy(opt_samples, label='optimal', inv_cov=inv_cov)
+
                 if len(expl_samples):
-                    self.alg_map[task]._update_policy_no_cost(expl_samples, label='dagger', inv_cov=inv_cov)
+                    self.update_policy(expl_samples, label='dagger', inv_cov=inv_cov)
 
             self.run_hl_update()
 
@@ -248,7 +246,56 @@ class MotionServer(Server):
 
             step += 1
 
-        self.policy_opt.sess.close()
+
+    def _log_solve_info(self, path, success, node, plan):
+        self.n_failed += 0. if success else 1.
+        n_plans = self._hyperparams['policy_opt']['buffer_sizes']['n_plans']
+        with n_plans.get_lock():
+            n_plans.value += 1
+
+        if self.verbose and len(path):
+            if node.nodetype.find('dagger') >= 0 and np.random.uniform() < 0.05:
+                self.save_video(path, path[-1]._postsuc, lab='_suc_{}_dgr'.format(success))
+            elif np.random.uniform() < 0.05:
+                self.save_video(path, path[-1]._postsuc, lab='_suc_{}_opt'.format(success), annotate=True)
+            elif not success and np.random.uniform() < 0.5:
+                self.save_video(path, path[-1]._postsuc, lab='_suc_{}_opt_fail'.format(success), annotate=True)
+
+        if self.verbose and self.render:
+            for ind, batch in enumerate(info['to_render']):
+                for next_path in batch:
+                    if len(next_path):
+                        print('BACKUP VIDEO:', next_path[-1].task)
+                        self.save_video(next_path, next_path[-1]._postsuc, lab='_{}_backup_solve'.format(ind))
+
+        self.log_path(path, 10)
+        for step in path: step.source_label = node.nodetype
+
+        if success and len(path):
+            print(self.id, 
+                  'succ. refine:', 
+                  node.label, 
+                  plan.actions[0].name, 
+                  'rollout succ:', 
+                  path[-1]._postsuc, 
+                  path[-1].success, 
+                  'goal:', 
+                  self.agent.goal(0, path[-1].targets), )
+
+        if len(path) and path[-1].success:
+            n_plans = self._hyperparams['policy_opt']['buffer_sizes']['n_total']
+            with n_plans.get_lock():
+                n_plans.value += 1
+
+        n_plan = self._hyperparams['policy_opt']['buffer_sizes']['n_plan_{}'.format(node.nodetype)]
+        with n_plan.get_lock():
+            n_plan.value += 1
+
+        if not success:
+            print('Opt failure from', node.label, node.nodetype)
+            n_fail = self._hyperparams['policy_opt']['buffer_sizes']['n_plan_{}_failed'.format(node.nodetype)]
+            with n_fail.get_lock():
+                n_fail.value += 1
 
 
     def update_expert_demos(self, demos):
@@ -266,6 +313,7 @@ class MotionServer(Server):
                     self.expert_demos['use_mask'][-1].append(s.use_ts[t])
         if self.cur_step % 5:
             np.save(self.expert_data_file, self.expert_demos)
+
 
     def log_node_info(self, node, success, path):
         key = 'n_ff'

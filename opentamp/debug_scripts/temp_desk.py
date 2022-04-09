@@ -16,7 +16,7 @@ from opentamp.pma import backtrack_ll_solver_OSQP as bt_ll
 from opentamp.pma.robot_solver import RobotSolverOSQP
 import opentamp.core.util_classes.transform_utils as T
 
-from opentamp.policy_hooks.multiprocess_main import load_config, setup_dirs, DIR_KEY
+from opentamp.policy_hooks.utils.file_utils import load_config, setup_dirs, LOG_DIR
 from opentamp.policy_hooks.run_training import argsparser
 from opentamp.policy_hooks.utils.load_agent import *
 import opentamp.policy_hooks.robodesk.hyp as hyp

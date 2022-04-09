@@ -10,16 +10,16 @@ from stable_baselines.common.env_checker import check_env
 from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv, VecEnv, sync_envs_normalization
 
 from opentamp.policy_hooks.agent_env_wrapper import AgentEnvWrapper, gen_agent_env, register_env
-from opentamp.policy_hooks.multiprocess_main import load_config, setup_dirs, DIR_KEY
+from opentamp.policy_hooks.multiprocess_main import load_config, setup_dirs, LOG_DIR
 from opentamp.policy_hooks.utils.policy_solver_utils import *
 
 def run(config):
     args = config['args']
     setup_dirs(config, args)
-    if not os.path.exists(DIR_KEY+config['weight_dir']):
-        os.makedirs(DIR_KEY+config['weight_dir'])
+    if not os.path.exists(LOG_DIR+config['weight_dir']):
+        os.makedirs(LOG_DIR+config['weight_dir'])
     
-    log_dir = DIR_KEY + config['weight_dir']
+    log_dir = LOG_DIR + config['weight_dir']
     base_config = config
     new_config, config_module = load_config(args, config)
     new_config.update(config)

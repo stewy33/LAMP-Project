@@ -167,7 +167,10 @@ class PolicyServer(object):
                                      feed_inds=(in_inds, out_inds), 
                                      feed_map=self.agent.center_cont, 
                                      save_dir=self.weight_dir+'/samples/')
-        self.data_gen = FastDataLoader(self.dataset, batch_size=self.batch_size, shuffle=True)
+        
+        self.data_gen = FastDataLoader(self.dataset, 
+                                       batch_size=self.batch_size, 
+                                       shuffle=True)
 
 
     def _setup_log_info(self):
@@ -272,7 +275,6 @@ class PolicyServer(object):
                     f.write(str(pp_info))
                     f.write('\n\n')
             #if self.task == 'primitive': print('\nTime to finish update:', time.time() - init_t, '\n')
-        self.policy_opt.sess.close()
 
 
     def get_log_info(self):

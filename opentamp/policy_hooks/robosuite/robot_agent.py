@@ -1,48 +1,40 @@
 import copy
+import ctypes
+import pickle as pickle
 import sys
 import time
 import traceback
-
-import pickle as pickle
-
-import ctypes
+import xml.etree.ElementTree as xml
 
 import numpy as np
 import scipy.interpolate
 from scipy.spatial.transform import Rotation
 
-import xml.etree.ElementTree as xml
-
-from sco_py.expr import *
-
-import core.util_classes.common_constants as const
 import pybullet as P
 
-
-from opentamp.policy_hooks.sample_list import SampleList
-
-
-import core.util_classes.items as items
-from core.util_classes.namo_predicates import dsafe, NEAR_TOL, dmove, HLGraspFailed, HLTransferFailed
-from core.util_classes.openrave_body import OpenRAVEBody
-from core.util_classes.viewer import OpenRAVEViewer
-import core.util_classes.transform_utils as T
-
-import pma.backtrack_ll_solver as bt_ll
-from pma.robosuite_solver import REF_JNTS
-
-from opentamp.policy_hooks.agent import Agent
-from opentamp.policy_hooks.sample import Sample
-from opentamp.policy_hooks.utils.policy_solver_utils import *
-import policy_hooks.utils.policy_solver_utils as utils
-from opentamp.policy_hooks.utils.tamp_eval_funcs import *
-# from opentamp.policy_hooks.namo.sorting_prob_4 import *
-from opentamp.policy_hooks.tamp_agent import TAMPAgent
-
 from mujoco_py.generated import const as mj_const
+
 import robosuite
 from robosuite.controllers import load_controller_config
 import robosuite.utils.transform_utils as robo_T
+
+from sco_py.expr import *
+
+from opentamp.policy_hooks.sample_list import SampleList
+import opentamp.core.util_classes.common_constants as const
+import opentamp.core.util_classes.items as items
+from opentamp.core.util_classes.namo_predicates import dsafe, NEAR_TOL, dmove, HLGraspFailed, HLTransferFailed
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.core.util_classes.viewer import OpenRAVEViewer
+import opentamp.core.util_classes.transform_utils as T
+import opentamp.pma.backtrack_ll_solver_OSQP as bt_ll
+from opentamp.pma.robosuite_solver import REF_JNTS
+from opentamp.policy_hooks.agent import Agent
+from opentamp.policy_hooks.sample import Sample
+from opentamp.policy_hooks.utils.policy_solver_utils import *
+import opentamp.policy_hooks.utils.policy_solver_utils as utils
+from opentamp.policy_hooks.utils.tamp_eval_funcs import *
+from opentamp.policy_hooks.tamp_agent import TAMPAgent
 
 
 bt_ll.INIT_TRAJ_COEFF = 1e-1

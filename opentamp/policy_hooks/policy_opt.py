@@ -19,12 +19,12 @@ SCOPE_LIST = ['primitive', 'cont']
 MODEL_DIR = 'saved_models/'
 
 
-class PolicyOpt(object):
-    """ Policy optimization using tensor flow for DAG computations/nonlinear function approximation. """
+class PolicyOpt():
     def __init__(self, hyperparams):
         self.config = hyperparams
         self.scope = hyperparams.get('scope', None)
         self.split_nets = hyperparams.get('split_nets', False)
+        self.task_list = list(config['task_list'])
         self.valid_scopes = ['control'] if not self.split_nets else list(config['task_list'])
         self.torch_iter = 0
         self.batch_size = self._hyperparams['batch_size']
@@ -153,9 +153,8 @@ class PolicyOpt(object):
             model = self.nets[scope]
             save_path = 'saved_models/'+dirname+'/'+scope+'{0}.ckpt'.format(ext)
             model.load_state_dict(torch.load(save_path))
-            if scope in self.task_map:
-                self.task_map[scope]['policy'].scale = np.load(MODEL_DIR+dirname+'/'+scope+'_scale{0}.npy'.format(ext))
-                self.task_map[scope]['policy'].bias = np.load(MODEL_DIR+dirname+'/'+scope+'_bias{0}.npy'.format(ext))
+            self.nets[scope].scale = np.load(MODEL_DIR+dirname+'/'+scope+'_scale{0}.npy'.format(ext))
+            self.nets[scope].bias = np.load(MODEL_DIR+dirname+'/'+scope+'_bias{0}.npy'.format(ext))
             self.write_shared_weights([scope])
             print(('Restored', scope, 'from', dirname))
 
@@ -205,16 +204,8 @@ class PolicyOpt(object):
     def serialize_weights(self, scopes=None, save=False):
         if scopes is None: scopes = self.valid_scopes + SCOPE_LIST
         models = {scope: self.nets[scope].state_dict() for scope in scopes if scope in self.nets}
-        scales = {task: self.task_map[task]['policy'].scale.tolist() for task in scopes if task in self.task_map}
-        biases = {task: self.task_map[task]['policy'].bias.tolist() for task in scopes if task in self.task_map}
-
-        if hasattr(self, 'prim_policy') and 'primitive' in scopes:
-            scales['primitive'] = self.prim_policy.scale.tolist()
-            biases['primitive'] = self.prim_policy.bias.tolist()
-
-        if hasattr(self, 'cont_policy') and 'cont' in scopes:
-            scales['cont'] = self.cont_policy.scale.tolist()
-            biases['cont'] = self.cont_policy.bias.tolist()
+        scales = {task: self.nets[scope].scale.tolist() for scope in scopes if task in self.nets}
+        biases = {task: self.nets[scope].bias.tolist() for scope in scopes if task in self.nets}
 
         scales[''] = []
         biases[''] = []
@@ -227,17 +218,9 @@ class PolicyOpt(object):
 
         for scope in scopes:
             self.nets[scope].load_state_dict(models[scope])
-            if scope == 'primitive' and hasattr(self, 'prim_policy'):
-                self.prim_policy.scale = np.array(scales[scope])
-                self.prim_policy.bias = np.array(biases[scope])
+            self.nets[scope].scale = np.array(scales[scope])
+            self.nets[scope].bias = np.array(biases[scope])
 
-            if scope == 'cont' and hasattr(self, 'cont_policy'):
-                self.cont_policy.scale = np.array(scales[scope])
-                self.cont_policy.bias = np.array(biases[scope])
-
-            if scope not in self.task_map: continue
-            self.task_map[scope]['policy'].scale = np.array(scales[scope])
-            self.task_map[scope]['policy'].bias = np.array(biases[scope])
         if save: self.store_scope_weights(scopes=scopes)
 
 
@@ -262,10 +245,9 @@ class PolicyOpt(object):
                 print('Saving torch model encountered an issue but it will not crash:')
                 traceback.print_exception(*sys.exc_info())
 
-        if scope in self.task_map:
-            policy = self.task_map[scope]['policy']
-            np.save(MODEL_DIR+weight_dir+'/'+scope+'_scale{0}'.format(lab), policy.scale)
-            np.save(MODEL_DIR+weight_dir+'/'+scope+'_bias{0}'.format(lab), policy.bias)
+        policy = self.nets[scope]
+        np.save(MODEL_DIR+weight_dir+'/'+scope+'_scale{0}'.format(lab), policy.scale)
+        np.save(MODEL_DIR+weight_dir+'/'+scope+'_bias{0}'.format(lab), policy.bias)
 
 
     def store_weights(self, weight_dir=None):
@@ -280,7 +262,7 @@ class PolicyOpt(object):
             self.cur_lr *= self.lr_scale
             self.cur_hllr *= self.lr_scale
 
-    def _select_dims(self, scope):
+    def select_dims(self, scope):
         dO = self.dO
         if scope == 'primitive':
             dO = self.dPrimObs
@@ -296,28 +278,28 @@ class PolicyOpt(object):
         return dO, dU
 
 
+    def _init_network(self, scope):
+        config = self._hyperparams['network_model']
+        if 'primitive' == scope:
+            config = self._hyperparams['primitive_network_model']
+
+        dO, dU = self.select_dims(scope)
+        config['dim_input'] = dO
+        config['dim_output'] = dU
+        self.nets[scope] = PolicyNet(config=config,
+                                     scope=scope,
+                                     device=self.device)
+
+
     def init_networks(self):
         """ Helper method to initialize the tf networks used """
         self.nets = {}
-        if self.load_all or self.scope is None:
-            for scope in self.valid_scopes:
-                dO, dU = self._select_dims(scope)
-                config = self._hyperparams['network_model']
-                if 'primitive' == self.scope: config = self._hyperparams['primitive_network_model']
-                
-                config['dim_input'] = dO
-                config['dim_output'] = dU
-                self.nets[scope] = PolicyNet(config=config,
-                                             device=self.device)
+        scopes = self.valid_scopes if (self.scope is None or self.load_all) else [self.scope]
+        for scope in scopes:
+            self._init_network(scope)
                 
         else:
-            config = self._hyperparams['network_model']
-            if 'primitive' == self.scope: config = self._hyperparams['primitive_network_model']
-            dO, dU = self._select_dims(self.scope)
-            config['dim_input'] = dO
-            config['dim_output'] = dU
-            self.nets[scope] = PolicyNet(config=config,
-                                         device=self.device)
+            self._init_network(self.scope)
 
 
     def init_solvers(self):
@@ -330,52 +312,26 @@ class PolicyOpt(object):
 
 
     def get_policy(self, task):
-        if task == 'primitive': return self.prim_policy
-        if task == 'cont': return self.cont_policy
-        if task == 'label': return self.label_policy
-        return self.task_map[task]['policy']
+        if task in self.nets: 
+            return self.nets[task]
 
+        elif task in self.task_list:
+            return self.nets['control']
 
-    def init_policies(self, dU):
-        if self.load_all or self.scope is None or self.scope == 'primitive':
-            self.prim_policy = TfPolicy(self._dPrim,
-                                        self.primitive_obs_tensor,
-                                        self.primitive_act_op,
-                                        self.primitive_feat_op,
-                                        np.zeros(self._dPrim),
-                                        self.sess,
-                                        self.device_string,
-                                        copy_param_scope=None,
-                                        normalize=False)
-        if (self.load_all or self.scope is None or self.scope == 'cont') and len(self._contBounds):
-            self.cont_policy = TfPolicy(self._dCont,
-                                        self.cont_obs_tensor,
-                                        self.cont_act_op,
-                                        self.cont_feat_op,
-                                        np.zeros(self._dCont),
-                                        self.sess,
-                                        self.device_string,
-                                        copy_param_scope=None,
-                                        normalize=False)
-        for scope in self.valid_scopes:
-            normalize = IM_ENUM not in self._hyperparams['network_params']['obs_include']
-            if self.scope is None or scope == self.scope:
-                self.task_map[scope]['policy'] = TfPolicy(dU,
-                                                        self.task_map[scope]['obs_tensor'],
-                                                        self.task_map[scope]['act_op'],
-                                                        self.task_map[scope]['feat_op'],
-                                                        np.zeros(dU),
-                                                        self.sess,
-                                                        self.device_string,
-                                                        normalize=normalize,
-                                                        copy_param_scope=None)
+        else:
+            raise ValueError('Cannot find policy for {}'.format(task))
  
+
+    def policy_initialized(self, task):
+        policy = self.get_policy(task)
+        return policy.is_initialized()
+
 
     def task_acc(self, obs, tgt_mu, prc, piecewise=False, scalar=True):
         acc = []
         task = 'primitive'
         for n in range(len(obs)):
-            distrs = self.task_distr(obs[n])
+            distrs = self.nets[task].task_distr(obs[n])
             labels = []
             for bound in self._primBounds:
                 labels.append(tgt_mu[n, bound[0]:bound[1]])
@@ -400,40 +356,10 @@ class PolicyOpt(object):
         return np.mean(acc, axis=0)
 
 
-    def cont_task(self, obs, eta=1.):
-        if len(obs.shape) < 2:
-            obs = obs.reshape(1, -1)
-
-        vals = self.sess.run(self.cont_act_op, feed_dict={self.cont_obs_tensor:obs, self.cont_eta: eta, self.dec_tensor: self.cur_dec})[0].flatten()
-        res = []
-        for bound in self._contBounds:
-            res.append(vals[bound[0]:bound[1]])
-        return res
-
-
-    def task_distr(self, obs, eta=1.):
-        if len(obs.shape) < 2:
-            obs = obs.reshape(1, -1)
-
-        distr = self.sess.run(self.primitive_act_op, feed_dict={self.primitive_obs_tensor:obs, self.primitive_eta: eta, self.dec_tensor: self.cur_dec})[0].flatten()
-        res = []
-        for bound in self._primBounds:
-            res.append(distr[bound[0]:bound[1]])
-        return res
-
-
-    def label_distr(self, obs, eta=1.):
-        if len(obs.shape) < 2:
-            obs = obs.reshape(1, -1)
-
-        distr = self.sess.run(self.label_act_op, feed_dict={self.label_obs_tensor:obs, self.label_eta: eta, self.dec_tensor: self.cur_dec})[0]
-        return distr
-
-
     def check_task_error(self, obs, mu):
         err = 0.
         for o in obs:
-            distrs = self.task_distr(o)
+            distrs = self.nets['primitive'].task_distr(o)
             i = 0
             for d in distrs:
                 ind1 = np.argmax(d)
@@ -447,11 +373,5 @@ class PolicyOpt(object):
 
     def check_validation(self, obs, tgt_mu, tgt_prc, task="control"):
         return self.get_loss(task, obs, tgt_mu, tgt_prc).item()
-
-
-    def policy_initialized(self, task):
-        if task in self.valid_scopes:
-            return self.task_map[task]['policy'].scale is not None
-        return self.task_map['control']['policy'].scale is not None
 
 

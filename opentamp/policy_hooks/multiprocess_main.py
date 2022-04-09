@@ -7,40 +7,36 @@ from collections import OrderedDict
 import subprocess
 import ctypes
 import logging
-import imp
-import importlib
 import os
 import os.path
 import pickle
 import psutil
 import sys
-import shutil
 import copy
 import argparse
 from datetime import datetime
 from threading import Thread
 import pprint
-import psutil
 import time
 import traceback
 import random
 
 import numpy as np
 
-import opentamp.software_constants as software_constants
+from opentamp.policy_hooks.motion_server import MotionServer
 from opentamp.policy_hooks.policy_opt import PolicyOpt
-from opentamp.policy_hooks.utils.policy_solver_utils import *
-import opentamp.policy_hooks.utils.policy_solver_utils as utils
-from opentamp.policy_hooks.utils.load_task_definitions import *
 from opentamp.policy_hooks.policy_server import PolicyServer
 from opentamp.policy_hooks.rollout_server import RolloutServer
-from opentamp.policy_hooks.motion_server import MotionServer
 from opentamp.policy_hooks.task_server import TaskServer
 import opentamp.policy_hooks.hl_retrain as hl_retrain
 from opentamp.policy_hooks.utils.load_agent import *
+from opentamp.policy_hooks.utils.load_task_definitions import *
+from opentamp.policy_hooks.utils.policy_solver_utils import *
+from opentamp.policy_info_log.utils.file_utils import *
+import opentamp.policy_hooks.utils.policy_solver_utils as utils
+import opentamp.software_constants as software_constants
 
 
-DIR_KEY = 'experiment_logs/'
 def spawn_server(cls, hyperparams, load_at_spawn=False):
     if load_at_spawn:
         new_config, config_mod = load_config(hyperparams['args'])
@@ -58,9 +54,12 @@ def spawn_server(cls, hyperparams, load_at_spawn=False):
     server = cls(hyperparams)
     server.run()
 
+
+# This enables multiprocessing for priority queues
 class QueueManager(SyncManager):
     pass
 QueueManager.register('PriorityQueue', PriorityQueue)
+
 
 class MultiProcessMain(object):
     def __init__(self, config, load_at_spawn=False):
@@ -72,6 +71,7 @@ class MultiProcessMain(object):
             task_file = config.get('task_map_file', '')
             self.pol_list = ('control',) if not config['args'].split_nets else tuple(get_tasks(task_file).keys())
             config['main'] = self
+
         else:
             task_file = config.get('task_map_file', '')
             self.pol_list = ('control',) if not config['args'].split_nets else tuple(get_tasks(task_file).keys())
@@ -79,6 +79,7 @@ class MultiProcessMain(object):
             new_config.update(config)
             self.init(new_config)
             self.check_dirs()
+
 
     def init(self, config):
         init_t = time.time()
@@ -106,18 +107,10 @@ class MultiProcessMain(object):
         config['agent'] = load_agent(config)
         self.sensor_dims = config['agent']['sensor_dims']
 
-        if 'cloth_width' in self.config:
-            self.config['agent']['cloth_width'] = self.config['cloth_width']
-            self.config['agent']['cloth_length'] = self.config['cloth_length']
-            self.config['agent']['cloth_spacing'] = self.config['cloth_spacing']
-            self.config['agent']['cloth_radius'] = self.config['cloth_radius']
-
         old_render = self.config['agent']['master_config']['load_render']
         self.config['agent']['master_config']['load_render'] = False
         self.agent = self.config['agent']['type'](self.config['agent'])
         self.config['agent']['master_config']['load_render'] = old_render
-        if hasattr(self.agent, 'cloth_init_joints'):
-            self.config['agent']['cloth_init_joints'] = self.agent.cloth_init_joints
 
         self.policy_opt = None
 
@@ -139,8 +132,6 @@ class MultiProcessMain(object):
         self.config['dPrimOut'] = self.agent.dPrimOut
         self.config['state_inds'] = self.agent.state_inds
         self.config['action_inds'] = self.agent.action_inds
-        self.config['policy_out_coeff'] = self.policy_out_coeff
-        self.config['policy_inf_coeff'] = self.policy_inf_coeff
         self.config['target_inds'] = self.agent.target_inds
         self.config['target_dim'] = self.agent.target_dim
         self.config['task_list'] = self.agent.task_list
@@ -167,54 +158,36 @@ class MultiProcessMain(object):
 
 
     def _set_alg_config(self):
-        self.policy_inf_coeff = self.config['algorithm']['policy_inf_coeff']
-        self.policy_out_coeff = self.config['algorithm']['policy_out_coeff']
-        state_cost_wp = np.ones((self.agent.symbolic_bound), dtype='float64')
-        traj_cost = {
-                        'type': StateTrajCost,
-                        'data_types': {
-                            utils.STATE_ENUM: {
-                                'wp': state_cost_wp,
-                                'target_state': np.zeros((1, self.agent.symbolic_bound)),
-                                'wp_final_multiplier': 5e1,
-                            }
-                        },
-                        'ramp_option': RAMP_CONSTANT
-                    }
-        action_cost = {
-                        'type': ActionTrajCost,
-                        'data_types': {
-                            utils.ACTION_ENUM: {
-                                'wp': np.ones((1, self.agent.dU), dtype='float64'),
-                                'target_state': np.zeros((1, self.agent.dU)),
-                            }
-                        },
-                        'ramp_option': RAMP_CONSTANT
-                     }
-
-        self.config['algorithm']['cost'] = traj_cost
-        self.config['dQ'] = self.agent.dU
-        self.config['algorithm']['init_traj_distr']['dQ'] = self.agent.dU
-        self.config['algorithm']['init_traj_distr']['dt'] = 1.0
-
         if self.config.get('add_hl_image', False):
             primitive_network_model = fp_multi_modal_discr_network
+
         elif self.config.get('conditional', False):
             primitive_network_model = tf_cond_classification_network
+
+        elif self.config.get('discrete_prim', True):
+            primitive_network_model = tf_classification_network
+
         else:
-            primitive_network_model = tf_classification_network if self.config.get('discrete_prim', True) else tf_network
+            primitive_network_model = tf_network
 
         if self.config.get('add_cont_image', False):
             cont_network_model = fp_multi_modal_cont_network
+
         elif self.config.get('conditional', False):
             cont_network_model = tf_cond_classification_network
+
+        elif self.config.get('discrete_prim', True):
+            cont_network_model = tf_classification_network
+
         else:
-            cont_network_model = tf_classification_network if self.config.get('discrete_prim', True) else tf_network
+            cont_network_model = tf_network
 
         if self.config.get('add_image', False):
             network_model = fp_cont_network
+
         else:
             network_model = tf_network
+
 
         self.config['algorithm']['policy_opt'] = {
             'q_imwt': self.config.get('q_imwt', 0),
@@ -353,45 +326,27 @@ class MultiProcessMain(object):
             buffers[task] = mp.Array(ctypes.c_char, (2**power))
             buf_sizes[task] = mp.Value('i')
             buf_sizes[task].value = 0
+
         buffers['primitive'] = mp.Array(ctypes.c_char, 20 * (2**power))
         buf_sizes['primitive'] = mp.Value('i')
         buf_sizes['primitive'].value = 0
         buffers['cont'] = mp.Array(ctypes.c_char, 20 * (2**power))
         buf_sizes['cont'] = mp.Value('i')
         buf_sizes['cont'].value = 0
-        buffers['label'] = mp.Array(ctypes.c_char, 20 * (2**power))
-        buf_sizes['label'] = mp.Value('i')
-        buf_sizes['label'].value = 0
-        buf_sizes['n_data'] = mp.Value('i')
-        buf_sizes['n_data'].value = 0
-        buf_sizes['n_plans'] = mp.Value('i')
-        buf_sizes['n_plans'].value = 0
-        buf_sizes['n_failed'] = mp.Value('i')
-        buf_sizes['n_failed'].value = 0
+
         for key in ['optimal', 'human', 'dagger', 'rollout']:
             buf_sizes['n_plan_{}_failed'.format(key)] = mp.Value('i')
             buf_sizes['n_plan_{}_failed'.format(key)].value = 0
             buf_sizes['n_plan_{}'.format(key)] = mp.Value('i')
             buf_sizes['n_plan_{}'.format(key)].value = 0
 
-        buf_sizes['n_mcts'] = mp.Value('i')
-        buf_sizes['n_mcts'].value = 0
-        buf_sizes['n_ff'] = mp.Value('i')
-        buf_sizes['n_ff'].value = 0
-        buf_sizes['n_postcond'] = mp.Value('i')
-        buf_sizes['n_postcond'].value = 0
-        buf_sizes['n_precond'] = mp.Value('i')
-        buf_sizes['n_precond'].value = 0
-        buf_sizes['n_midcond'] = mp.Value('i')
-        buf_sizes['n_midcond'].value = 0
-        buf_sizes['n_explore'] = mp.Value('i')
-        buf_sizes['n_explore'].value = 0
-        buf_sizes['n_rollout'] = mp.Value('i')
-        buf_sizes['n_rollout'].value = 0
-        buf_sizes['n_total'] = mp.Value('i')
-        buf_sizes['n_total'].value = 0
-        buf_sizes['n_negative'] = mp.Value('i')
-        buf_sizes['n_negative'].value = 0
+        for key in ['n_mcts', 'n_postcond', 'n_precond', 'n_midcond',
+                    'n_explore', 'n_rollout', 'n_total', 'n_negative',
+                    'n_failed', 'n_data', 'n_ff', 'n_plans']:
+
+            buf_sizes[key] = mp.Value('i')
+            buf_sizes[key].value = 0
+
         config['share_buffer'] = True
         config['buffers'] = buffers
         config['buffer_sizes'] = buf_sizes
@@ -450,10 +405,13 @@ class MultiProcessMain(object):
         hyperparams['view'] = False
         for n in range(hyperparams['num_motion']):
             self._create_server(hyperparams, MotionServer, start_idx+n)
+
         for n in range(hyperparams['num_task']):
             self._create_server(hyperparams, TaskServer, start_idx+n)
+
         for n in range(hyperparams['num_rollout']):
             self._create_server(hyperparams, RolloutServer, start_idx+n)
+
         if hyperparams['label_server']:
             self._create_server(hyperparams, LabelServer, 'labelserver')
 
@@ -464,15 +422,18 @@ class MultiProcessMain(object):
         hyperparams['load_render'] = hyperparams['load_render'] or hyperparams['view_policy']
         hyperparams['check_precond'] = False
         self.create_server(RolloutServer, copy.copy(hyperparams))
+
         hyperparams['id'] = 'moretest'
         hyperparams['view'] = False
         self.create_server(RolloutServer, copy.copy(hyperparams))
+
         for n in range(hyperparams['num_test']):
             hyperparams['id'] = 'server_test_{}'.format(n)
             hyperparams['view'] = False 
             hyperparams['load_render'] = hyperparams['load_render'] or hyperparams['view_policy']
             hyperparams['check_precond'] = False
             self.create_server(RolloutServer, copy.copy(hyperparams))
+
         hyperparams['run_hl_test'] = False
 
 
@@ -481,6 +442,118 @@ class MultiProcessMain(object):
         hyperparams['id'] = cls.__name__ + str(idx)
         p = self.create_server(cls, hyperparams)
         return p
+
+
+    def kill_processes(self):
+        for p in self.processes:
+            p.terminate()
+
+    def check_processes(self):
+        states = []
+        for n in range(len(self.processes)):
+            p = self.processes[n]
+            states.append(p.exitcode)
+        return states
+
+
+    def watch_processes(self, kill_all=False):
+        exit = False
+        while not exit and len(self.processes):
+            for n in range(len(self.processes)):
+                p = self.processes[n]
+                if not p.is_alive():
+                    message = 'Killing All.' if kill_all else 'Restarting Dead Process.'
+                    print('\n\nProcess died: ' + str(self.process_info[n]) + ' - ' + message)
+                    exit = kill_all
+                    if kill_all: break
+                    process_config = self.process_configs[p.pid]
+                    del self.process_info[n]
+                    self.create_server(*process_config)
+                    print("Relaunched dead process")
+            time.sleep(60)
+            self.log_mem_info()
+
+        for p in self.processes:
+            if p.is_alive(): p.terminate()
+
+
+    def start(self, kill_all=False):
+        #self.check_dirs()
+        if self.config.get('share_buffer', True):
+            self.allocate_shared_buffers(self.config)
+            self.allocate_queues(self.config)
+
+        self.spawn_servers(self.config)
+        self.start_servers()
+
+        if self.monitor:
+            self.watch_processes(kill_all)
+
+
+    # def expand_rollout_servers(self):
+    #     if not self.config['expand_process'] or time.time() - self.config['start_t'] < 1200: return
+    #     self.cpu_use.append(psutil.cpu_percent(interval=1.))
+    #     if np.mean(self.cpu_use[-1:]) < 92.5:
+    #         hyp = copy.copy(self.config)
+    #         hyp['split_mcts_alg'] = True
+    #         hyp['run_alg_updates'] = False
+    #         hyp['run_mcts_rollouts'] = True
+    #         hyp['run_hl_test'] = False
+    #         print(('Starting rollout server {0}'.format(self.cur_n_rollout)))
+    #         p = self._create_rollout_server(hyp, idx=self.cur_n_rollout)
+    #         try:
+    #             p.start()
+    #         except Exception as e:
+    #             print(e)
+    #             print('Failed to expand rollout servers')
+    #         time.sleep(1.)
+
+
+    def log_mem_info(self):
+        '''
+        Get list of running process sorted by Memory Usage
+        '''
+        listOfProcObjects = []
+        # Iterate over the list
+        for proc in psutil.process_iter():
+            try:
+                # Fetch process details as dict
+                pinfo = proc.as_dict(attrs=['pid', 'name', 'username'])
+                pinfo['vms'] = proc.memory_info().vms / (1024 * 1024)
+                # Append dict to list
+                listOfProcObjects.append(pinfo);
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+
+        # Sort list of dict by key vms i.e. memory usage
+        listOfProcObjects = sorted(listOfProcObjects, key=lambda procObj: procObj['vms'], reverse=True)
+
+        return listOfProcObjects
+
+
+    def allocate_queues(self, config):
+        self.queue_manager = QueueManager()
+        self.queue_manager.start()
+
+        queue_size = 50
+        train_queue_size = 20
+
+        queues = {}
+        config['hl_queue'] = Queue(maxsize=train_queue_size)
+        config['ll_queue'] = {} 
+        for task in self.pol_list:
+            config['ll_queue'][task] = Queue(maxsize=train_queue_size)
+        config['cont_queue'] = Queue(maxsize=train_queue_size)
+        config['label_queue'] = Queue(maxsize=train_queue_size)
+
+        config['motion_queue'] = self.queue_manager.PriorityQueue(maxsize=queue_size)
+        config['task_queue'] = self.queue_manager.PriorityQueue(maxsize=queue_size)
+        config['rollout_queue'] = self.queue_manager.PriorityQueue(maxsize=queue_size)
+
+        #for task in self.pol_list+('primitive',):
+        #    queues['{0}_pol'.format(task)] = Queue(50)
+        config['queues'] = queues
+        return queues
 
 
     def hl_only_retrain(self):
@@ -500,7 +573,7 @@ class MultiProcessMain(object):
         hl_dir = hyperparams['hl_data']
         print(('Launching hl retrain from', ll_dir, hl_dir))
         #hl_retrain.retrain_hl_from_samples(server, hl_dir)
-        server.data_gen.load_from_dir(DIR_KEY+hl_dir)
+        server.data_gen.load_from_dir(LOG_DIR+hl_dir)
         server.run()
 
 
@@ -521,7 +594,7 @@ class MultiProcessMain(object):
         hl_dir = hyperparams['hl_data']
         print(('Launching hl retrain from', ll_dir, hl_dir))
         #hl_retrain.retrain_hl_from_samples(server, hl_dir)
-        server.data_gen.load_from_dir(DIR_KEY+hl_dir)
+        server.data_gen.load_from_dir(LOG_DIR+hl_dir)
         server.run()
 
 
@@ -588,127 +661,6 @@ class MultiProcessMain(object):
         sys.exit(0)
 
 
-    def kill_processes(self):
-        for p in self.processes:
-            p.terminate()
-
-    def check_processes(self):
-        states = []
-        for n in range(len(self.processes)):
-            p = self.processes[n]
-            states.append(p.exitcode)
-        return states
-
-    def watch_processes(self, kill_all=False):
-        exit = False
-        while not exit and len(self.processes):
-            for n in range(len(self.processes)):
-                p = self.processes[n]
-                if not p.is_alive():
-                    message = 'Killing All.' if kill_all else 'Restarting Dead Process.'
-                    print('\n\nProcess died: ' + str(self.process_info[n]) + ' - ' + message)
-                    exit = kill_all
-                    if kill_all: break
-                    process_config = self.process_configs[p.pid]
-                    del self.process_info[n]
-                    self.create_server(*process_config)
-                    print("Relaunched dead process")
-            time.sleep(60)
-            self.log_mem_info()
-
-        for p in self.processes:
-            if p.is_alive(): p.terminate()
-
-    def check_dirs(self):
-        if not os.path.exists('experiment_logs/'+self.config['weight_dir']):
-            os.makedirs('experiment_logs/'+self.config['weight_dir'])
-        #if not os.path.exists('tf_saved/'+self.config['weight_dir']+'_trained'):
-        #    os.makedirs('tf_saved/'+self.config['weight_dir']+'_trained')
-
-
-    def start(self, kill_all=False):
-        #self.check_dirs()
-        if self.config.get('share_buffer', True):
-            self.allocate_shared_buffers(self.config)
-            self.allocate_queues(self.config)
-
-        self.spawn_servers(self.config)
-        self.start_servers()
-
-        if self.monitor:
-            self.watch_processes(kill_all)
-
-
-    def expand_rollout_servers(self):
-        if not self.config['expand_process'] or time.time() - self.config['start_t'] < 1200: return
-        self.cpu_use.append(psutil.cpu_percent(interval=1.))
-        if np.mean(self.cpu_use[-1:]) < 92.5:
-            hyp = copy.copy(self.config)
-            hyp['split_mcts_alg'] = True
-            hyp['run_alg_updates'] = False
-            hyp['run_mcts_rollouts'] = True
-            hyp['run_hl_test'] = False
-            print(('Starting rollout server {0}'.format(self.cur_n_rollout)))
-            p = self._create_rollout_server(hyp, idx=self.cur_n_rollout)
-            try:
-                p.start()
-            except Exception as e:
-                print(e)
-                print('Failed to expand rollout servers')
-            time.sleep(1.)
-
-
-    def log_mem_info(self):
-        '''
-        Get list of running process sorted by Memory Usage
-        '''
-        listOfProcObjects = []
-        # Iterate over the list
-        for proc in psutil.process_iter():
-            try:
-                # Fetch process details as dict
-                pinfo = proc.as_dict(attrs=['pid', 'name', 'username'])
-                pinfo['vms'] = proc.memory_info().vms / (1024 * 1024)
-                # Append dict to list
-                listOfProcObjects.append(pinfo);
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                pass
-
-        # Sort list of dict by key vms i.e. memory usage
-        listOfProcObjects = sorted(listOfProcObjects, key=lambda procObj: procObj['vms'], reverse=True)
-
-        return listOfProcObjects
-
-
-    def allocate_queues(self, config):
-        self.queue_manager = QueueManager()
-        self.queue_manager.start()
-
-        queue_size = 50
-        train_queue_size = 20
-
-        queues = {}
-        config['hl_queue'] = Queue(maxsize=train_queue_size)
-        config['ll_queue'] = {} 
-        for task in self.pol_list:
-            config['ll_queue'][task] = Queue(maxsize=train_queue_size)
-        config['cont_queue'] = Queue(maxsize=train_queue_size)
-        config['label_queue'] = Queue(maxsize=train_queue_size)
-
-        config['motion_queue'] = self.queue_manager.PriorityQueue(maxsize=queue_size)
-        config['task_queue'] = self.queue_manager.PriorityQueue(maxsize=queue_size)
-        config['rollout_queue'] = self.queue_manager.PriorityQueue(maxsize=queue_size)
-
-        if config['label_server']:
-            config['label_in_queue'] = Queue(maxsize=queue_size)
-            config['label_out_queue'] = Queue(maxsize=queue_size)
-
-        #for task in self.pol_list+('primitive',):
-        #    queues['{0}_pol'.format(task)] = Queue(50)
-        config['queues'] = queues
-        return queues
-
-
 def load_config(args, config=None, reload_module=None):
     config_file = args.config
     if reload_module is not None:
@@ -736,13 +688,13 @@ def load_config(args, config=None, reload_module=None):
 def setup_dirs(c, args):
     current_id = 0 if c.get('index', -1) < 0 else c['index']
     if c.get('index', -1) < 0:
-        while os.path.isdir(DIR_KEY+c['weight_dir']+'_'+str(current_id)):
+        while os.path.isdir(LOG_DIR+c['weight_dir']+'_'+str(current_id)):
             current_id += 1
     c['group_id'] = current_id
     c['weight_dir'] = c['weight_dir']+'_{0}'.format(current_id)
     dir_name = ''
     dir_name2 = ''
-    sub_dirs = [DIR_KEY] + c['weight_dir'].split('/') + ['rollout_logs']
+    sub_dirs = [LOG_DIR] + c['weight_dir'].split('/') + ['rollout_logs']
     sub_dirs2 = ['tf_saved/'] + c['weight_dir'].split('/') + ['rollout_logs']
 
     try:
@@ -767,19 +719,19 @@ def setup_dirs(c, args):
             os.mkdir(dir_name+'samples/')
 
         if args.hl_retrain:
-            src = DIR_KEY + args.hl_data + '/hyp.py'
+            src = LOG_DIR + args.hl_data + '/hyp.py'
         elif hasattr(args, 'expert_path') and len(args.expert_path):
             src = args.expert_path+'/hyp.py'
         elif len(args.test):
-            src = DIR_KEY + '/' + args.test + '/hyp.py'
+            src = LOG_DIR + '/' + args.test + '/hyp.py'
         else:
             src = c['source'].replace('.', '/')+'.py'
-        shutil.copyfile(src, DIR_KEY+c['weight_dir']+'/hyp.py')
-        with open(DIR_KEY+c['weight_dir']+'/__init__.py', 'w+') as f:
+        shutil.copyfile(src, LOG_DIR+c['weight_dir']+'/hyp.py')
+        with open(LOG_DIR+c['weight_dir']+'/__init__.py', 'w+') as f:
             f.write('')
-        with open(DIR_KEY+c['weight_dir']+'/args.pkl', 'wb+') as f:
+        with open(LOG_DIR+c['weight_dir']+'/args.pkl', 'wb+') as f:
             pickle.dump(args, f, protocol=0)
-        with open(DIR_KEY+c['weight_dir']+'/args.txt', 'w+') as f:
+        with open(LOG_DIR+c['weight_dir']+'/args.txt', 'w+') as f:
             f.write(str(vars(args)))
     else:
         time.sleep(0.1) # Give others a chance to let base set up dirs

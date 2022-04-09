@@ -17,13 +17,12 @@ class Agent(object, metaclass=abc.ABCMeta):
         config.update(hyperparams)
         self._hyperparams = config
 
-        # Store samples, along with size/index information for samples.
-        self._samples = [[] for _ in range(self._hyperparams['conditions'])]
         self.T = self._hyperparams['T']
         self.dU = self._hyperparams['sensor_dims'][ACTION_ENUM]
 
         self.x_data_types = self._hyperparams['state_include']
         self.obs_data_types = self._hyperparams['obs_include']
+        
         if 'prim_obs_include' in self._hyperparams:
             self.prim_obs_data_types = self._hyperparams['prim_obs_include']
         else:
@@ -49,10 +48,7 @@ class Agent(object, metaclass=abc.ABCMeta):
         else:
             self.val_obs_data_types = self.obs_data_types
 
-        if 'meta_include' in self._hyperparams:
-            self.meta_data_types = self._hyperparams['meta_include']
-        else:
-            self.meta_data_types = []
+        self.meta_data_types = self._hyperparams.get('meta_include', [])
 
         # List of indices for each data type in state X.
         self._state_idx, i = [], 0

@@ -24,8 +24,6 @@ LOG_DIR = 'experiment_logs/'
 
 class Server(object):
     def __init__(self, hyperparams):
-        global tf
-        import tensorflow as tf
         self.id = hyperparams['id']
         self._hyperparams = hyperparams
         self.config = hyperparams
@@ -70,10 +68,6 @@ class Server(object):
 
         self.solver = hyperparams['mp_solver_type'](hyperparams)
         self.opt_smooth = hyperparams.get('opt_smooth', False)
-        self.alg_map = hyperparams['alg_map']
-        for alg in list(self.alg_map.values()):
-            #alg.set_conditions(len(self.agent.x0))
-            alg.set_conditions(1)
         self.init_policy_opt(hyperparams)
         hyperparams['agent']['master_config'] = hyperparams
         try:
@@ -103,10 +97,6 @@ class Server(object):
         self.ll_queue = hyperparams['ll_queue']
         self.hl_queue = hyperparams['hl_queue']
         self.cont_queue = hyperparams['cont_queue']
-        self.label_queue = hyperparams['label_queue']
-
-        self.pol_cls = DummyPolicy
-        self.opt_cls = DummyPolicyOpt
 
         self.label_type = 'base'
         self._n_plans = 0
@@ -128,8 +118,6 @@ class Server(object):
         self.expert_demos = {'acs':[], 'obs':[], 'ep_rets':[], 'rews':[], 'tasks':[], 'use_mask':[]}
         self.last_log_t = time.time()
 
-        for alg in list(self.alg_map.values()):
-            alg.policy_opt = DummyPolicyOpt(self.update, self.prob)
         self.current_id = 0
         self.cur_step = 0
         self.adj_eta = False
@@ -140,31 +128,36 @@ class Server(object):
         self.agent.plans, self.agent.openrave_bodies, self.agent.env = self.agent.prob.get_plans(use_tf=True)
         self.dagger_window = hyperparams['dagger_window']
         self.rollout_opt = hyperparams['rollout_opt']
-        task_plans = list(self.agent.plans.items())
-        for task, plan in task_plans:
-            #self.agent.plans[task[0]] = plan
-            plan.state_inds = self.agent.state_inds
-            plan.action_inds = self.agent.action_inds
-            plan.dX = self.agent.dX
-            plan.dU = self.agent.dU
-            plan.symbolic_bound = self.agent.symbolic_bound
-            plan.target_dim = self.agent.target_dim
-            plan.target_inds = self.agent.target_inds
-            for param in plan.params.values():
-                for attr in param.attrs:
-                    if (param.name, attr) not in plan.state_inds:
-                        if type(getattr(param, attr)) is not np.ndarray: continue
-                        val = getattr(param, attr)[:,0]
-                        if np.any(np.isnan(val)):
-                            getattr(param, attr)[:] = 0.
-                        else:
-                            getattr(param, attr)[:,:] = val.reshape((-1,1))
+        task_plans = list(self.agent.plans.values())
+        for plan in task_plans:
+            self._setup_plan(plan)
+
         self.expert_data_file = LOG_DIR+hyperparams['weight_dir']+'/'+str(self.id)+'_exp_data.npy'
         self.ff_data_file = LOG_DIR+hyperparams['weight_dir']+'/ff_samples_{0}_{1}.pkl'
         self.log_file = LOG_DIR + hyperparams['weight_dir'] + '/rollout_logs/{0}_log.txt'.format(self.id)
         self.verbose_log_file = LOG_DIR + hyperparams['weight_dir'] + '/rollout_logs/{0}_verbose.txt'.format(self.id)
         self.n_plans = 0
         self.n_failed = 0
+
+
+    def _setup_plan(self, plan):
+        plan.state_inds = self.agent.state_inds
+        plan.action_inds = self.agent.action_inds
+        plan.dX = self.agent.dX
+        plan.dU = self.agent.dU
+        plan.symbolic_bound = self.agent.symbolic_bound
+        plan.target_dim = self.agent.target_dim
+        plan.target_inds = self.agent.target_inds
+        for param in plan.params.values():
+            for attr in param.attrs:
+                if (param.name, attr) not in plan.state_inds:
+                    if type(getattr(param, attr)) is not np.ndarray: continue
+                    val = getattr(param, attr)[:,0]
+                    if np.any(np.isnan(val)):
+                        getattr(param, attr)[:] = 0.
+                    else:
+                        getattr(param, attr)[:,:] = val.reshape((-1,1))
+
 
     
     def map_cont_discr_tasks(self):
@@ -182,17 +175,12 @@ class Server(object):
 
     
     def init_policy_opt(self, hyperparams):
-        hyperparams['policy_opt']['gpu_id'] = np.random.randint(1,3)
-        hyperparams['policy_opt']['use_gpu'] = 1
-        hyperparams['policy_opt']['load_label'] = hyperparams['classify_labels']
-        hyperparams['policy_opt']['split_hl_loss'] = hyperparams['split_hl_loss']
-        hyperparams['policy_opt']['weight_dir'] = hyperparams['weight_dir'] # + '_trained'
-        hyperparams['policy_opt']['scope'] = None
-        hyperparams['policy_opt']['gpu_fraction'] = 1./32.
-        hyperparams['policy_opt']['allow_growth'] = True
-        self.policy_opt = hyperparams['policy_opt']['type'](hyperparams['policy_opt'])
-        for alg in list(self.alg_map.values()):
-            alg.local_policy_opt = self.policy_opt
+        config = hyperparams['policy_opt']
+        opt_cls = config['type']
+        config['gpu_id'] = np.random.randint(1,3)
+        config['use_gpu'] = True
+        config['weight_dir'] = hyperparams['weight_dir']
+        self.policy_opt = opt_cls(config['policy_opt'])
         self.weights_to_store = {}
 
 
@@ -210,15 +198,21 @@ class Server(object):
         domain = list(self.agent.plans.values())[0].domain
         problem.goal = goal
         abs_prob = self.agent.hl_solver.translate_problem(problem, goal=goal, initial=initial)
+
         ref_x0 = self.agent.clip_state(x0)
         for pname, attr in self.agent.state_inds:
             p = problem.init_state.params[pname]
             if p.is_symbol(): continue
-            getattr(p, attr)[:,0] = ref_x0[self.agent.state_inds[pname, attr]]
+
+            inds = self.agent.state_inds[pname, attr]
+            getattr(p, attr)[:,0] = ref_x0[inds]
+
         for targ, attr in self.agent.target_inds:
             if targ in problem.init_state.params:
                 p = problem.init_state.params[targ]
-                getattr(p, attr)[:,0] = targets[self.agent.target_inds[targ, attr]].copy()
+                inds = self.agent.target_inds[targ, attr]
+                getattr(p, attr)[:,0] = targets[inds].copy()
+
         prefix = []
         hlnode = HLSearchNode(abs_prob,
                              domain,
@@ -234,68 +228,71 @@ class Server(object):
 
 
     def new_problem(self):
-        x0, targets = self.agent.get_random_initial_state_vec(self.config, self.agent._eval_mode, self.agent.dX, self.agent.state_inds, 1)
+        x0, targets = self.agent.get_random_initial_state_vec(self.config, 
+                                                              self.agent._eval_mode, 
+                                                              self.agent.dX, 
+                                                              self.agent.state_inds, 
+                                                              1,)
         x0, targets = x0[0], targets[0]
         target_vec = np.zeros(self.agent.target_dim)
         for (tname, attr), inds in self.agent.target_inds.items():
             if attr != 'value': continue
             target_vec[inds] = targets[tname]
+
         return x0, target_vec
 
 
     def update(self, obs, mu, prc, wt, task, label, acts=[], ref_acts=[], terminal=[], aux=[], primobs=[], x=[]):
-        assert(len(mu) == len(obs))
-        assert len(label)
-
-        #prc[np.where(prc > 1e10)] = 1e10
-        #wt[np.where(wt > 1e10)] = 1e10
-        #prc[np.where(prc < -1e10)] = -1e10
-        #wt[np.where(wt < -1e10)] = -1e10
-        #mu[np.where(np.abs(mu) > 1e10)] = 0
-        if np.any(np.isnan(obs)):
-            print((obs, task, np.isnan(obs)))
-        assert not np.any(np.isnan(obs))
-        assert not np.any(np.isinf(obs))
-        #obs[np.where(np.abs(obs) > 1e10)] = 0
-
         primobs = [] if task in ['primitive', 'cont', 'label'] or self.end2end == 0 else primobs
         data = (obs, mu, prc, wt, aux, primobs, x, task, label)
         if task == 'primitive':
             q = self.hl_queue
+
         elif task == 'cont':
             q = self.cont_queue
+
         elif task == 'label':
             q = self.label_queue
+
+        elif task in self.ll_queue:
+            q = self.ll_queue[task]
+
+        elif task in self.task_list:
+            q = self.ll_queue['control']
+
         else:
-            q = self.ll_queue[task] if task in self.ll_queue else self.ll_queue['control']
+            raise ValueError('No queue found for {}'.format(task))
 
         self.push_queue(data, q)
 
 
-    def policy_call(self, x, obs, t, noise, task, opt_s=None):
-        if noise is None: noise = np.zeros(self.agent.dU)
-        if 'control' in self.policy_opt.task_map:
-            alg_key = 'control'
-        else:
-            alg_key = task
+    def policy_call(self, obs, t, noise, task, opt_s=None):
+        scope = task if task in self.policy_opt.valid_scopes else 'control'
 
-        if self.policy_opt.task_map[alg_key]['policy'].scale is None:
-            if opt_s is not None:
-                return opt_s.get_U(t) # + self.alg_map[task].cur[0].traj_distr.chol_pol_covar[t].T.dot(noise)
-            t = min(t, self.alg_map[task].cur[0].traj_distr.T-1)
-            return self.alg_map[task].cur[0].traj_distr.act(x.copy(), obs.copy(), t, noise)
-        return self.policy_opt.task_map[alg_key]['policy'].act(x.copy(), obs.copy(), t, noise)
+        dO, dU = self.policy_opt._select_dims(scope)
+        if noise is None: noise = np.zeros(dU)
+
+        if opt_s is not None:
+            if scope == 'primitive':
+                return opt_s.get_prim_out(t) + noise
+
+            elif scope == 'cont':
+                return opt_s.get_cont_out(t) + noise
+
+            else:
+                return opt_s.get_U(t) + noise
+
+        policy = self.policy_opt.get_policy(scope)
+        assert policy.is_initialized()
+
+        return policy.act(obs, noise)
 
 
     def primitive_call(self, prim_obs, soft=False, eta=1., t=-1, task=None):
         if self.adj_eta: eta *= self.agent.eta_scale
         distrs = self.policy_opt.task_distr(prim_obs, eta)
-        #if task is not None and t % self.check_prim_t:
-        #    for i in range(len(distrs)):
-        #        distrs[i] = np.zeros_like(distrs[i])
-        #        distrs[i][task[i]] = 1.
-        #    return distrs
         if not soft: return distrs
+
         out = []
         opts = self.agent.prob.get_prim_choices(self.task_list)
         enums = list(opts.keys())
@@ -306,7 +303,9 @@ class Server(object):
                 ind = np.random.choice(list(range(len(d))), p=p)
                 d[ind] += 1e2
                 d /= np.sum(d)
+
             out.append(d)
+
         return out
 
 
@@ -356,25 +355,11 @@ class Server(object):
         if self.policy_opt.share_buffers and time.time() - self._last_weight_read > inter:
             self.policy_opt.read_shared_weights()
             self._last_weight_read = time.time()
-        chol_pol_covar = {}
-        #for task in self.agent.task_list:
-        #    if task not in self.policy_opt.valid_scopes:
-        #        task_name = 'control'
-        #    else:
-        #        task_name = task
 
-        #    #if self.policy_opt.task_map[task_name]['policy'].scale is None:
-        #    #    chol_pol_covar[task] = np.eye(self.agent.dU) # self.alg_map[task].cur[0].traj_distr.chol_pol_covar
-        #    #else:
-        #    #    chol_pol_covar[task] = self.policy_opt.task_map[task_name]['policy'].chol_pol_covar
+        rollout_policies = {}
+        for task in self.agent.task_list:
+            rollout_policies[task] = self.policy_opt.get_policy(task)
 
-        rollout_policies = {task: DummyPolicy(task,
-                                              self.policy_call,
-                                              scale=self.policy_opt.task_map[task if task in self.policy_opt.valid_scopes else 'control']['policy'].scale)
-                                  for task in self.agent.task_list}
-
-        if len(self.agent.continuous_opts):
-            rollout_policies['cont'] = ContPolicy(self.policy_opt)
         self.agent.policies = rollout_policies
 
 
@@ -392,11 +377,51 @@ class Server(object):
                 s.source_label = label
         
         self.update_primitive(path_samples)
-        if self._hyperparams.get('save_expert', False): self.update_expert_demos(ref_paths)
+        if self._hyperparams.get('save_expert', False):
+            self.update_expert_demos(ref_paths)
 
 
     def run(self):
         raise NotImplementedError()
+
+
+    def update_policy(self, optimal_samples, label='optimal', inv_cov=None):
+        dU, dO = self.agent.dU, self.agent.dO
+        # Compute target mean, cov, and weight for each sample.
+        obs_data, tgt_mu = np.zeros((0, dO)), np.zeros((0, dU))
+        tgt_prc, tgt_wt = np.zeros((0, dU, dU)), np.zeros((0,))
+        x_data = np.zeros((0, self.agent.dX))
+        prim_obs_data = np.zeros((0, self.agent.dPrim))
+
+        for sample in optimal_samples:
+            prc = np.zeros((1, sample.T, dU, dU))
+            wt = np.zeros((sample.T,))
+            traj, pol_info = self.new_traj_distr[m], self.cur[m].pol_info
+            for t in range(sample.T):
+                if inv_cov is None:
+                    prc[:, t, :, :] = np.tile(traj.inv_pol_covar[0, :, :], [1, 1, 1])
+                else:
+                    prc[:, t, :, :] = np.tile(inv_cov, [1, 1, 1])
+                wt[t] = sample.use_ts[t] # self._hyperparams['opt_wt'] * sample.use_ts[t]
+
+            tgt_mu = np.concatenate((tgt_mu, sample.get_U()), axis=0)
+            obs_data = np.concatenate((obs_data, sample.get_obs()), axis=0)
+            prim_obs_data = np.concatenate((prim_obs_data, sample.get_prim_obs()), axis=0)
+            x_data = np.concatenate((x_data, sample.get_X()), axis=0)
+            tgt_wt = np.concatenate((tgt_wt, wt), axis=0)
+            tgt_prc = np.concatenate((tgt_prc, prc.reshape(-1, dU, dU)), axis=0)
+
+        if len(tgt_mu):
+            self.update(obs_data, 
+                        tgt_mu, 
+                        tgt_prc, 
+                        tgt_wt, 
+                        self.task, 
+                        label, 
+                        primobs=prim_obs_data, 
+                        x=x_data,)
+        else:
+            print('WARNING: Update called with no data.')
 
 
     def update_primitive(self, samples):
@@ -442,7 +467,14 @@ class Server(object):
 
         if len(tgt_mu):
             # print('Sending update to primitive net')
-            self.update(obs_data, tgt_mu, tgt_prc, tgt_wt, 'primitive', samples[0].source_label, aux=tgt_aux, x=tgt_x)
+            self.update(obs_data, 
+                        tgt_mu, 
+                        tgt_prc, 
+                        tgt_wt, 
+                        'primitive', 
+                        samples[0].source_label, 
+                        aux=tgt_aux, 
+                        x=tgt_x)
 
 
     def update_cont_network(self, samples):
@@ -453,14 +485,6 @@ class Server(object):
         tgt_aux = np.zeros((0))
         tgt_x = np.zeros((0, self.agent.dX))
         opts = self.agent.prob.get_prim_choices(self.agent.task_list)
-
-        #if len(samples):
-        #    lab = samples[0].source_label
-        #    lab = 'n_plans' if lab == 'optimal' else 'n_rollout'
-        #    if lab in self.policy_opt.buf_sizes:
-        #        with self.policy_opt.buf_sizes[lab].get_lock():
-        #            self.policy_opt.buf_sizes[lab].value += 1
-        #        samples[0].source_label = ''
 
         for ind, sample in enumerate(samples):
             mu = sample.get_cont_out()
@@ -483,56 +507,6 @@ class Server(object):
         if len(tgt_mu):
             # print('Sending update to primitive net')
             self.update(obs_data, tgt_mu, tgt_prc, tgt_wt, 'cont', samples[0].source_label, aux=tgt_aux, x=tgt_x)
-
-
-    def update_negative_primitive(self, samples):
-        if not self.use_neg or not len(samples): return
-        dP, dO = self.agent.dPrimOut, self.agent.dPrim
-        dOpts = len(self.agent.discrete_opts) 
-        obs_data, tgt_mu = np.zeros((0, dO)), np.zeros((0, dP))
-        tgt_prc, tgt_wt = np.zeros((0, dOpts)), np.zeros((0))
-        tgt_aux = np.zeros((0))
-        tgt_x = np.zeros((0, self.agent.dX))
-        opts = self.agent.prob.get_prim_choices(self.agent.task_list)
-        cont_mask = {}
-        for enum in opts:
-            cont_mask[enum] = 0. if np.isscalar(opts[enum]) else 1.
-
-        for sample, ts, task in samples:
-            mu = []
-            for ind, val in enumerate(task):
-                opt = self.agent.discrete_opts[ind]
-                vec = np.ones(len(opts[opt]))
-                if len(opts[opt]) > 1:
-                    vec[val] = 0.
-                    vec /= np.sum(vec)
-                mu.append(vec)
-            mu = [np.concatenate(mu)]
-            tgt_mu = np.concatenate((tgt_mu, mu))
-            wt = np.ones(1) # sample.prim_use_ts[ts:ts+1]
-            obs = [sample.get_prim_obs(ts)]
-            aux = np.ones(1)
-            tgt_x = np.concatenate((tgt_x, sample.get_X()))
-            tgt_aux = np.concatenate((tgt_aux, aux))
-            tgt_wt = np.concatenate((tgt_wt, wt))
-            obs_data = np.concatenate((obs_data, obs))
-
-            prc = np.concatenate([cont_mask[enum] * self.agent.get_mask(sample, enum) for enum in self.agent.discrete_opts], axis=-1) # np.tile(np.eye(dP), (sample.T,1,1))
-            prc = prc[ts:ts+1]
-            tgt_prc = np.concatenate((tgt_prc, prc))
-
-        if len(tgt_mu):
-            self.update(obs_data, tgt_mu, tgt_prc, tgt_wt, 'primitive', 'negative', aux=tgt_aux, x=tgt_x)
-
-        with self.policy_opt.buf_sizes['n_negative'].get_lock():
-            self.policy_opt.buf_sizes['n_negative'].value += len(tgt_mu)
-
-
-    def update_labels(self, labels, obs, x):
-        assert len(x) > 0
-        dOpts = len(self.agent.discrete_opts)
-        prc = np.ones((len(labels), 2))
-        self.update(obs, labels, prc, np.ones(len(obs)), 'label', 'human', aux=[], x=x)
 
 
     def get_path_data(self, path, n_fixed=0, verbose=False):
@@ -578,24 +552,6 @@ class Server(object):
             pp_info = pprint.pformat(info, depth=120, width=120)
             f.write(pp_info)
             f.write('\n')
-
-    
-    def send_to_label(self, rollout, suc, tdelta=2):
-        if not self.config['label_server'] \
-           or not len(rollout) \
-           or not self.render \
-           or not self.agent.policies_initialized(): return
-
-        targets = rollout[-1].targets
-        vid = self._gen_video(rollout, tdelta=tdelta)
-        x = np.concatenate([s.get_X()[::tdelta] for s in rollout])
-        obs = np.concatenate([s.get_prim_obs()[::tdelta] for s in rollout])
-        q = self.config['label_in_queue']
-        print('Sending rollout to label')
-        assert vid is not None
-
-        pt = (vid, x, targets, self.agent.state_inds, obs, suc)
-        self.push_queue(pt, q)
 
 
     def save_image(self, rollout=None, success=None, ts=0, render=True, x=None):
@@ -661,7 +617,13 @@ class Server(object):
         cam_ids = self.config.get('visual_cameras', [self.agent.camera_id])
         if success is not None:
             suc_flag = 'success' if success else 'fail'
-        fname = self.video_dir + '/{0}_{1}_{2}_{3}{4}_{5}.npy'.format(self.id, self.group_id, self.cur_vid_id, suc_flag, lab, str(cam_ids)[1:-1].replace(' ', ''))
+
+        fname = self.video_dir + '/{0}_{1}_{2}_{3}{4}_{5}.npy'.format(self.id, 
+                                                                      self.group_id, 
+                                                                      self.cur_vid_id, 
+                                                                      suc_flag, 
+                                                                      lab, 
+                                                                      str(cam_ids)[1:-1].replace(' ', ''), )
         self.cur_vid_id += 1
         buf = []
         for step in rollout:
@@ -684,55 +646,8 @@ class Server(object):
                 im = np.concatenate(ims, axis=1)
                 buf.append(im)
             self.agent.target_vecs[0] = old_vec
-        #np.save(fname, np.array(buf))
-        #print('Time to create video:', time.time() - init_t)
         init_t = time.time()
         save_video(fname, dname=self._hyperparams['descr'], arr=np.array(buf), savepath=self.video_dir)
         self.agent.image_height = old_h
         self.agent.image_width = old_w
-        #print('Time to save video:', time.time() - init_t)
-
-
-class ContPolicy:
-    def __init__(self, policy_opt):
-        self.policy_opt = policy_opt
-
-    def initialized(self):
-        return self.policy_opt.cont_policy.scale is not None
-
-    def act(self, x, obs, t, noise=None):
-        return self.policy_opt.cont_task(obs)
-
-
-class DummyPolicy:
-    def __init__(self, task, policy_call, opt_sample=None, chol_pol_covar=None, scale=None):
-        self.task = task
-        self.policy_call = policy_call
-        self.opt_sample = opt_sample
-        self.chol_pol_covar = chol_pol_covar
-        self.scale = scale
-
-    def act(self, x, obs, t, noise=None):
-        U = self.policy_call(x, obs, t, noise, self.task, None)
-        if np.any(np.isnan(x)):
-            #raise Exception('Nans in policy call state.')
-            print('Nans in policy call state.')
-            U = np.zeros_like(U)
-        if np.any(np.isnan(obs)):
-            # raise Exception('Nans in policy call obs.')
-            print(obs)
-            print('Nans in policy call obs.')
-            U = np.zeros_like(U)
-        if np.any(np.isnan(U)):
-            # raise Exception('Nans in policy call action.')
-            print('Nans in policy call action.')
-            U = np.zeros_like(U)
-        return U
-
-
-class DummyPolicyOpt:
-    def __init__(self, update, prob):
-        self.update = update
-        self.prob = prob
-
 

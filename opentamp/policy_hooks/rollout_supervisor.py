@@ -233,26 +233,6 @@ class RolloutSupervisor():
         return val, path
 
 
-    def predict_labels(self, path, N=4, wind=5):
-        vals = []
-        pts = []
-        for ind, step in enumerate(path):
-            preds = self.policy_opt.label_distr(step.get_prim_obs())[:,1]
-            vals.append(preds)
-
-        for i in range(N):
-            s = np.argmax([np.max(val) for val in vals])
-            t = np.argmax(vals[s])
-            if vals[s][t] < 1e-2: break
-            vals[s][max(0, t-wind):t+wind] = 0.
-            pts.append((s,t, 'predicted label'))
-            if t-wind < 0 and s > 0:
-                vals[s-1][t-wind:] = 0.
-            if t+wind > len(vals[s]) and s < len(vals)-1:
-                vals[s+1][:t+wind-len(vals[s])] = 0.
-        return pts
-
-
     def get_task(self, state, targets, prev_task, soft=False, eta=None):
         if eta is None: eta = self.eta
         sample = Sample(self.agent)
@@ -282,7 +262,7 @@ class RolloutSupervisor():
 
     def primitive_call(self, prim_obs, soft=False, eta=1., t=-1, task=None, adj_eta=False):
         if adj_eta: eta *= self.agent.eta_scale
-        distrs = self.policy_opt.task_distr(prim_obs, eta)
+        distrs = self.policy_opt.nets['primitive'].task_distr(prim_obs, eta)
         if not soft: return distrs
 
         out = []

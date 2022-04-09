@@ -8,9 +8,8 @@ from gym.envs.registration import register
 from opentamp.policy_hooks.sample import Sample
 from opentamp.policy_hooks.utils.policy_solver_utils import *
 from opentamp.policy_hooks.utils.load_agent import *
+from opentamp.policy_hooks.utils.file_utils import LOG_DIR
 
-
-DIR_KEY = 'experiment_logs/'
 
 def register_env(config, name='TampGym-v0', max_ts=500):
     register(
@@ -39,8 +38,8 @@ class AgentEnvWrapper(Env):
         if agent is None:
             agent_config = load_agent(config)
             agent = build_agent(agent_config)
-        self._log_dir = DIR_KEY + config['weight_dir'] + '/'
-        self._vid_dir = DIR_KEY + config['weight_dir'] + '/videos/'
+        self._log_dir = LOG_DIR + config['weight_dir'] + '/'
+        self._vid_dir = LOG_DIR + config['weight_dir'] + '/videos/'
         if not os.path.isdir(self._vid_dir):
             try:
                 os.makedirs(self._vid_dir)
@@ -59,7 +58,7 @@ class AgentEnvWrapper(Env):
         self.horizon = agent.hor * agent.rlen
         self.start_t = time.time()
         self.n_step = 0.
-        self.log_dir = DIR_KEY + config['weight_dir']
+        self.log_dir = LOG_DIR + config['weight_dir']
         self._rollout_data = []
         self.config = config
 

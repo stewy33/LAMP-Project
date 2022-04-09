@@ -10,9 +10,9 @@ class Sample(object):
     single trajectory.
     Note: must be serializable for easy saving, no C++ references!
     """
-    def __init__(self, agent):
+    def __init__(self, agent, T=None):
         self.agent = agent
-        self.T = agent.T
+        self.T = agent.T if T is None else T
         self.step = 0
         self.task_end = False
         self._data = {}

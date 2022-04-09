@@ -16,7 +16,7 @@ if USE_BASELINES:
     from opentamp.policy_hooks.baselines.argparse import argsparser as baseline_argsparser
 
 
-DIR_KEY = 'experiment_logs/'
+LOG_DIR = 'experiment_logs/'
 
 def get_dir_name(base, no, nt, ind, descr, args=None):
     dir_name = base + 'objs{0}_{1}/{2}'.format(no, nt, descr)
@@ -160,12 +160,12 @@ def run_baseline(args):
 def setup_dirs(c, args):
     current_id = 0 if c.get('index', -1) < 0 else c['index']
     if c.get('index', -1) < 0:
-        while os.path.isdir(DIR_KEY+c['weight_dir']+'_'+str(current_id)):
+        while os.path.isdir(LOG_DIR+c['weight_dir']+'_'+str(current_id)):
             current_id += 1
     c['group_id'] = current_id
     c['weight_dir'] = c['weight_dir']+'_{0}'.format(current_id)
     dir_name = ''
-    sub_dirs = [DIR_KEY] + c['weight_dir'].split('/')
+    sub_dirs = [LOG_DIR] + c['weight_dir'].split('/')
 
     try:
         from mpi4py import MPI
@@ -181,17 +181,17 @@ def setup_dirs(c, args):
             if not os.path.isdir(dir_name):
                 os.mkdir(dir_name)
         if args.hl_retrain:
-            src = DIR_KEY + args.hl_data + '/hyp.py'
+            src = LOG_DIR + args.hl_data + '/hyp.py'
         elif len(args.expert_path):
             src = args.expert_path+'/hyp.py'
         else:
             src = c['source'].replace('.', '/')+'.py'
-        shutil.copyfile(src, DIR_KEY+c['weight_dir']+'/hyp.py')
-        with open(DIR_KEY+c['weight_dir']+'/__init__.py', 'w+') as f:
+        shutil.copyfile(src, LOG_DIR+c['weight_dir']+'/hyp.py')
+        with open(LOG_DIR+c['weight_dir']+'/__init__.py', 'w+') as f:
             f.write('')
-        with open(DIR_KEY+c['weight_dir']+'/args.pkl', 'wb+') as f:
+        with open(LOG_DIR+c['weight_dir']+'/args.pkl', 'wb+') as f:
             pickle.dump(args, f, protocol=0)
-        with open(DIR_KEY+c['weight_dir']+'/args.txt', 'w+') as f:
+        with open(LOG_DIR+c['weight_dir']+'/args.txt', 'w+') as f:
             f.write(str(vars(args)))
     else:
         time.sleep(0.1) # Give others a chance to let base set up dirs
@@ -217,10 +217,10 @@ def main():
     n_targs = args.nobjs if args.nobjs > 0 else None
     #n_targs = args.ntargs if args.ntargs > 0 else None
     if len(args.test):
-        sys.path.insert(1, DIR_KEY+args.test)
+        sys.path.insert(1, LOG_DIR+args.test)
         exps_info = [['hyp']]
         old_args = args
-        with open(DIR_KEY+args.test+'/args.pkl', 'rb') as f:
+        with open(LOG_DIR+args.test+'/args.pkl', 'rb') as f:
             args = pickle.load(f)
         args.soft_eval = old_args.soft_eval
         args.test = old_args.test
@@ -236,7 +236,7 @@ def main():
         for key in old_vars:
             if key not in var_args: var_args[key] = old_vars[key]
     if args.hl_retrain:
-        sys.path.insert(1, DIR_KEY+args.hl_data)
+        sys.path.insert(1, LOG_DIR+args.hl_data)
         exps_info = [['hyp']]
 
     exps = load_multi(exps_info, n_objs, n_targs, args)

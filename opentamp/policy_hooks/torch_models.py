@@ -13,7 +13,7 @@ def precision_mse(output, y, precision):
     return torch.matmul(torch.matmul(output, precision), y.transpose())
 
 
-class PolicyNet(nn.Module):
+class TorchNet(nn.Module):
     def __init__(self, config, device=None):
         nn.Module.__init__(self)
         self.config = config
@@ -181,4 +181,56 @@ class PolicyNet(nn.Module):
         return fp
 
 
+class PolicyNet(TorchNet):
+    def __init__(self, config, scope, device=None):
+        self.scope = scope
+        self.normalize = self.config.get('normalize', False)
+        self.scale = None
+        self.bias = None
+
+        super().__init__(config=config, device=device)
+
+
+    def act(self, obs, noise=None, eta=1.):
+
+        if self.scope in ['primitive', 'cont']:
+            is_cont = self.scope == 'cont'
+            return self.task_distr(obs, eta, is_cont)
+
+        if len(np.shape(obs)) == 1:
+            flatten = True
+            obs = np.expand_dims(obs, axis=0)
+
+        if self.normalize:
+            if self.scale is None or self.bias is None:
+                raise ValueError('scale & bias must be set before normalization')
+
+            obs = obs.copy()
+            obs[:, self.x_idx] = obs[:, self.x_idx].dot(self.scale) + self.bias
+
+        act = self.forward(obs)
+
+        if noise is not None:
+            act += noise
+
+        return act.flatten() if flatten else act
+
+
+    def task_distr(self, obs, eta=1., cont=False):
+        if len(obs.shape) < 2:
+            flatten = True
+            obs = obs.reshape(1, -1)
+
+        vals = self.forward(obs)
+
+        res = []
+        for bound in self._contBounds:
+            res.append(vals[:, bound[0]:bound[1]])
+
+        return res.flatten() if flatten else res
+
+
+    def is_initialized(self):
+        if not self.normalize: return True
+        return not (self.scale is None or self.bias is None)
 

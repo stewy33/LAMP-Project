@@ -39,45 +39,22 @@ class TaskServer(Server):
             time.sleep(0.01)
 
 
-    def load_labelled_state(self):
-        probs = []
-        if self.labelled_dir is None or not len(self.labelled_dir): return
-        fnames = os.listdir(self.labelled_dir)
-        for fname in fnames:
-            if fname.find('npy') < 0: continue
-            data = np.load(self.labelled_dir+fname, allow_pickle=True)
-            for pt in data:
-                label = pt[0]
-                x, targets = pt[1], pt[2]
-                inds = pt[3]
-                suc = pt[4]
-                ts = pt[-1]
-                if label in ['after', 'during']:
-                    probs.append((x, targets))
-        if self.max_labels > 0 and len(probs) > self.max_labels:
-            inds = np.random.choice(len(probs), self.max_labels)
-            probs = [probs[i] for i in inds]
-        ind = int(self.id[-1])
-        ntask = self._hyperparams['num_task']
-        nper = int(len(probs) / ntask)
-        probs = probs[ind*nper:(ind+1)*nper]
-        self.prob_queue.extend(probs)
-        print('\n\n\n {} loaded {} labels\n\n'.format(self.id, len(probs)))
-
-
     def find_task_plan(self):
         node = self.pop_queue(self.task_queue)
         if node is None or node.expansions > EXPAND_LIMIT:
             if len(self.prob_queue):
                 x, targets = self.prob_queue.pop()
                 node = self.spawn_problem(x, targets)
-                node.nodetype = 'human'
-                node.label = 'offline human'
+                node.nodetype = 'queued'
+                node.label = 'queued'
             else:
                 node = self.spawn_problem()
 
         try:
-            plan_str = self.agent.hl_solver.run_planner(node.abs_prob, node.domain, node.prefix, label='{}_{}'.format(self.id, self.exp_id))
+            plan_str = self.agent.hl_solver.run_planner(node.abs_prob, 
+                                                        node.domain, 
+                                                        node.prefix, 
+                                                        label='{}_{}'.format(self.id, self.exp_id),)
         except OSError as e:
             print('OSError in hl solve:', e)
             plan_str = Plan.IMPOSSIBLE
@@ -95,6 +72,7 @@ class TaskServer(Server):
                 state_info = {(pname, aname): node.x0[self.agent.state_inds[pname, aname]] for (pname, aname) in self.agent.state_inds}
                 info = '\n\n{} Task server could not plan for: {}\n{}\nExpansions: {}\n\n'.format(node.label, node.abs_prob, state_info, node.expansions)
                 f.write(str(info))
+
             return
 
         new_node = LLSearchNode(plan_str, 
@@ -112,7 +90,7 @@ class TaskServer(Server):
                                 info=node.info)
 
         if self.config['seq']:
-            import pma.backtrack_ll_solver as bt_ll
+            import pma.backtrack_ll_solver_OSQP as bt_ll
             visual = len(os.environ.get('DISPLAY', '')) > 0
             if visual: self.agent.add_viewer()
             bt_ll.DEBUG = True
@@ -122,6 +100,7 @@ class TaskServer(Server):
             #    import ipdb; ipdb.set_trace()
             new_init = self.agent.hl_solver.apply_action(plan.prob.initial, plan.actions[0])
             import ipdb; ipdb.set_trace()
+
         self.push_queue(new_node, self.motion_queue)
 
 

@@ -98,7 +98,7 @@ class RolloutServer(Server):
         for sample in path:
             for t in range(sample.T):
                 hl_act = sample.get_prim_out(t=t)
-                distrs = self.policy_opt.task_distr(sample.get_prim_obs(t=t), eta=1.)
+                distrs = self.policy_opt.nets['primitive'].task_distr(sample.get_prim_obs(t=t), eta=1.)
                 ind = 0
                 p = 1.
                 for d in distrs:
@@ -335,7 +335,6 @@ class RolloutServer(Server):
                 self.update_cont_network(cont_samples)
 
             self.write_log()
-        self.policy_opt.sess.close()
 
 
     def send_rollout(self, node):
