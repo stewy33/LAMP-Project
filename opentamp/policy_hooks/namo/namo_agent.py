@@ -937,64 +937,6 @@ class NAMOSortingAgent(TAMPAgent):
         sample.set(ACTION_ENUM, act)
 
 
-    def get_prim_options(self, cond, state):
-        mp_state = state[self._x_data_idx[STATE_ENUM]]
-        outs = {}
-        out[TASK_ENUM] = copy.copy(self.task_list)
-        options = get_prim_choices(self.task_list)
-        plan = list(self.plans.values())[0]
-        for enum in self.prim_dims:
-            if enum == TASK_ENUM: continue
-            out[enum] = []
-            for item in options[enum]:
-                if item in plan.params:
-                    param = plan.params[item]
-                    if param.is_symbol():
-                        if param.name in self.targets[cond]:
-                            out[enum] = self.targets[cond][param.name].copy()
-                        else:
-                            out[enum].append(param.value[:,0].copy())
-                    else:
-                        out[enum].append(mp_state[self.state_inds[item, 'pose']].copy())
-
-            out[enum] = np.array(out[enum])
-        return outs
-
-
-    def get_prim_value(self, cond, state, task):
-        mp_state = state[self._x_data_idx[STATE_ENUM]]
-        out = {}
-        out[TASK_ENUM] = self.task_list[task[0]]
-        plan = self.plans[task]
-        options = self.prob.get_prim_choices(self.task_list)
-        for i in range(1, len(task)):
-            enum = list(self.prim_dims.keys())[i-1]
-            item = options[enum][task[i]]
-            if item in plan.params:
-                param = plan.params[item]
-                if param.is_symbol():
-                    if param.name in self.targets[cond]:
-                        out[enum] = self.targets[cond][param.name].copy()
-                    else:
-                        out[enum] = param.value[:,0]
-                else:
-                    out[enum] = mp_state[self.state_inds[item, 'pose']]
-
-        return out
-
-
-    def get_prim_index(self, enum, name):
-        prim_options = self.prob.get_prim_choices(self.task_list)
-        return prim_options[enum].index(name)
-
-
-    def get_prim_indices(self, names):
-        task = [self.task_list.index(names[0])]
-        for i in range(1, len(names)):
-            task.append(self.get_prim_index(list(self.prim_dims.keys())[i-1], names[i]))
-        return tuple(task)
-
-
     def goal_f(self, condition, state, targets=None, cont=False, anywhere=False, tol=LOCAL_NEAR_TOL):
         if targets is None:
             targets = self.target_vecs[condition]

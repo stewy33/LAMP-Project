@@ -67,7 +67,6 @@ class Server(object):
         #os.environ['CUDA_VISIBLE_DEVICES'] = ""
 
         self.solver = hyperparams['mp_solver_type'](hyperparams)
-        self.opt_smooth = hyperparams.get('opt_smooth', False)
         self.init_policy_opt(hyperparams)
         hyperparams['agent']['master_config'] = hyperparams
         try:
@@ -113,7 +112,6 @@ class Server(object):
         self.backup = hyperparams['backup']
         self.end2end = hyperparams['end_to_end_prob']
         self.task_list = self.agent.task_list
-        self.pol_list = tuple(hyperparams['policy_list'])
         self.stopped = False
         self.expert_demos = {'acs':[], 'obs':[], 'ep_rets':[], 'rews':[], 'tasks':[], 'use_mask':[]}
         self.last_log_t = time.time()

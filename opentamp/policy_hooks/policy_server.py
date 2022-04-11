@@ -11,10 +11,10 @@ import torch
 
 from opentamp.policy_hooks.policy_opt import PolicyOpt
 from opentamp.policy_hooks.queued_dataset import QueuedDataset
+from opentamp.policy_hooks.utils.file_utils import LOG_DIR
 from opentamp.policy_hooks.utils.policy_solver_utils import *
 
 
-LOG_DIR = 'experiment_logs/'
 MAX_QUEUE_SIZE = 100
 UPDATE_TIME = 60
 
@@ -23,7 +23,9 @@ class PolicyServer(object):
         self.group_id = hyperparams['group_id']
         self.task = hyperparams['scope']
         self.task_list = hyperparams['task_list']
-        self.weight_dir = LOG_DIR+hyperparams['weight_dir']
+
+        base_log_dir = hyperparams.get('log_dir', LOG_DIR)
+        self.weight_dir = base_log_dir+hyperparams['weight_dir']
 
         self.seed = int((1e2*time.time()) % 1000.)
         np.random.seed(self.seed)
@@ -66,7 +68,7 @@ class PolicyServer(object):
      
         hyperparams['dPrim'] = len(hyperparams['prim_bounds'])
         hyperparams['dCont'] = len(hyperparams['cont_bounds'])
-        hyperparams['policy_opt']['primitive_network_params']['output_boundaries'] = self.discr_bounds
+        hyperparams['policy_opt']['hl_network_params']['output_boundaries'] = self.discr_bounds
         hyperparams['policy_opt']['cont_network_params']['output_boundaries'] = self.cont_bounds
         self.policy_opt = hyperparams['policy_opt']['type'](hyperparams['policy_opt'])
         self.policy_opt.lr_policy = hyperparams['lr_policy']
@@ -81,18 +83,18 @@ class PolicyServer(object):
     def _compute_idx(self):
         # List of indices for state (vector) data and image (tensor) data in observation.
         self.x_idx, self.img_idx, i = [], [], 0
-        for sensor in self._hyperparams['network_params']['obs_include']:
-            dim = self._hyperparams['network_params']['sensor_dims'][sensor]
-            if sensor in self._hyperparams['network_params'].get('obs_image_data', []):
+        for sensor in self._hyperparams['ll_network_params']['obs_include']:
+            dim = self._hyperparams['ll_network_params']['sensor_dims'][sensor]
+            if sensor in self._hyperparams['ll_network_params'].get('obs_image_data', []):
                 self.img_idx = self.img_idx + list(range(i, i+dim))
             else:
                 self.x_idx = self.x_idx + list(range(i, i+dim))
             i += dim
 
         self.prim_x_idx, self.prim_img_idx, i = [], [], 0
-        for sensor in self._hyperparams['primitive_network_params']['obs_include']:
-            dim = self._hyperparams['primitive_network_params']['sensor_dims'][sensor]
-            if sensor in self._hyperparams['primitive_network_params'].get('obs_image_data', []):
+        for sensor in self._hyperparams['hl_network_params']['obs_include']:
+            dim = self._hyperparams['hl_network_params']['sensor_dims'][sensor]
+            if sensor in self._hyperparams['hl_network_params'].get('obs_image_data', []):
                 self.prim_img_idx = self.prim_img_idx + list(range(i, i+dim))
             else:
                 self.prim_x_idx = self.prim_x_idx + list(range(i, i+dim))

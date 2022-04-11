@@ -1,30 +1,25 @@
-import multiprocessing as mp
-from multiprocessing.managers import SyncManager
-from multiprocessing import Process, Pool, Queue
-from queue import PriorityQueue
-import atexit
-from collections import OrderedDict
-import subprocess
+import argparse
+import copy
 import ctypes
-import logging
 import os
 import os.path
 import pickle
 import psutil
+from queue import PriorityQueue
+import random
 import sys
-import copy
-import argparse
-from datetime import datetime
 from threading import Thread
-import pprint
 import time
 import traceback
-import random
+
+import multiprocessing as mp
+from multiprocessing.managers import SyncManager
+from multiprocessing import Process, Pool, Queue
 
 import numpy as np
 
 from opentamp.policy_hooks.motion_server import MotionServer
-from opentamp.policy_hooks.policy_opt import PolicyOpt
+from opentamp.policy_hooks.policy_opt import TorchPolicyOpt
 from opentamp.policy_hooks.policy_server import PolicyServer
 from opentamp.policy_hooks.rollout_server import RolloutServer
 from opentamp.policy_hooks.task_server import TaskServer
@@ -34,7 +29,6 @@ from opentamp.policy_hooks.utils.load_task_definitions import *
 from opentamp.policy_hooks.utils.policy_solver_utils import *
 from opentamp.policy_info_log.utils.file_utils import *
 import opentamp.policy_hooks.utils.policy_solver_utils as utils
-import opentamp.software_constants as software_constants
 
 
 def spawn_server(cls, hyperparams, load_at_spawn=False):
@@ -46,9 +40,10 @@ def spawn_server(cls, hyperparams, load_at_spawn=False):
         hyperparams['policy_opt']['share_buffer'] = True
         hyperparams['policy_opt']['buffers'] = hyperparams['buffers']
         hyperparams['policy_opt']['buffer_sizes'] = hyperparams['buffer_sizes']
-        if cls is PolicyServer and hyperparams['scope'] is 'cont' and not len(hyperparams['cont_bounds']):
-            return
-        if cls is PolicyServer and hyperparams['scope'] is 'label' and not hyperparams['classify_labels']:
+
+        if cls is PolicyServer \
+           and hyperparams['scope'] is 'cont' \
+           and not len(hyperparams['cont_bounds']):
             return
 
     server = cls(hyperparams)
@@ -82,64 +77,27 @@ class MultiProcessMain(object):
 
 
     def init(self, config):
-        init_t = time.time()
         self.config = config
-        prob = config['prob']
         self.config['group_id'] = config.get('group_id', 0)
         if 'id' not in self.config: self.config['id'] = -1
-        time_limit = config.get('time_limit', 14400)
+        self.config['start_t'] = time.time()
 
+        prob = config['prob']
         conditions = self.config['num_conds']
         self.task_list = tuple(sorted(list(get_tasks(self.config['task_map_file']).keys())))
-        self.cur_n_rollout = 0
-        if 'multi_policy' not in self.config: self.config['multi_policy'] = False
-        self.pol_list = self.task_list if self.config.get('split_nets', False) else ('control',)
-        self.config['policy_list'] = self.pol_list
         self.config['task_list'] = self.task_list
-        task_encoding = get_task_encoding(self.task_list)
-        plans = {}
-        task_breaks = []
-        goal_states = []
-
-        self.config['target_f'] = None # prob.get_next_target
-        self.config['encode_f'] = None # prob.sorting_state_encode
+        self.weight_dir = self.config['weight_dir']
 
         config['agent'] = load_agent(config)
-        self.sensor_dims = config['agent']['sensor_dims']
 
+        # Build a local agent to verify some values, but don't lincur rendering voerhead
         old_render = self.config['agent']['master_config']['load_render']
         self.config['agent']['master_config']['load_render'] = False
         self.agent = self.config['agent']['type'](self.config['agent'])
         self.config['agent']['master_config']['load_render'] = old_render
 
-        self.policy_opt = None
-
-        self.weight_dir = self.config['weight_dir']
-
-        self.mcts = []
         self._map_cont_discr_tasks()
         self._set_alg_config()
-        self.config['mcts'] = self.mcts
-        # self.config['agent'] = self.agent
-        self.config['alg_map'] = self.alg_map
-        self.config['dX'] = self.config['agent']['dX']
-        self.config['dU'] = self.config['agent']['dU']
-        self.config['symbolic_bound'] = self.config['agent']['symbolic_bound']
-        self.config['dO'] = self.agent.dO
-        self.config['dPrimObs'] = self.agent.dPrim
-        self.config['dContObs'] = self.agent.dCont
-        self.config['dValObs'] = self.agent.dVal #+ np.sum([len(options[e]) for e in options])
-        self.config['dPrimOut'] = self.agent.dPrimOut
-        self.config['state_inds'] = self.agent.state_inds
-        self.config['action_inds'] = self.agent.action_inds
-        self.config['target_inds'] = self.agent.target_inds
-        self.config['target_dim'] = self.agent.target_dim
-        self.config['task_list'] = self.agent.task_list
-        self.config['time_log'] = 'experiment_logs/'+self.config['weight_dir']+'/timing_info.txt'
-        self.config['time_limit'] = time_limit
-        self.config['start_t'] = time.time()
-
-        self.roscore = None
         self.processes = []
 
 
@@ -188,87 +146,95 @@ class MultiProcessMain(object):
         else:
             network_model = tf_network
 
-
-        self.config['algorithm']['policy_opt'] = {
-            'q_imwt': self.config.get('q_imwt', 0),
+        sensor_dims = self.config['agent']['sensor_dims']
+        obs_image_data = [IM_ENUM, OVERHEAD_IMAGE_ENUM, LEFT_IMAGE_ENUM, RIGHT_IMAGE_ENUM]
+        self.config['policy_opt'] = {
             'll_policy': self.config.get('ll_policy', ''),
             'hl_policy': self.config.get('hl_policy', ''),
             'cont_policy': self.config.get('cont_policy', ''),
-            'type': ControlAttentionPolicyOpt,
-            'network_params': {
+            'type': self.config.get('policy_opt_cls', TorchPolicyOpt),
+            'prim_obs_include': self.config['agent']['prim_obs_include'],
+            'prim_out_include': self.config['agent']['prim_out_include'],
+            
+            'll_network_params': {
                 'obs_include': self.config['agent']['obs_include'],
-                'obs_image_data': [IM_ENUM, OVERHEAD_IMAGE_ENUM, LEFT_IMAGE_ENUM, RIGHT_IMAGE_ENUM],
+                'out_include': [ACTION_ENUM],
+                'obs_image_data': obs_image_data,
                 'idx': self.agent._obs_data_idx,
+                'sensor_dims': sensor_dims,
                 'num_filters': self.config.get('num_filters', [32, 32]),
                 'filter_sizes': self.config.get('filter_sizes', [7,5]),
                 'image_width': self.config['image_width'],
                 'image_height': self.config['image_height'],
                 'image_channels': self.config['image_channels'],
-                'sensor_dims': self.sensor_dims,
                 'n_layers': self.config['n_layers'],
-                'q_imwt': 1,
                 'dim_hidden': self.config['dim_hidden'],
+                'act_fn': self.config.get('act_fn', 'relu'),
+                'output_fn': self.config.get('output_fn', None),
+                'loss_fn': self.config.get('loss_fn', 'precision_mse'),
+                'conv_to_fc': 'fp',
+                'normalize': True,
             },
-            'primitive_network_params': {
+
+            'hl_network_params': {
                 'obs_include': self.config['agent']['prim_obs_include'],
-                'obs_image_data': [IM_ENUM, OVERHEAD_IMAGE_ENUM, LEFT_IMAGE_ENUM, RIGHT_IMAGE_ENUM],
+                'out_include': self.config['agent']['prim_out_include'],
+                'obs_image_data': obs_image_data,
                 'idx': self.agent._prim_obs_data_idx,
-                'image_width': self.config['image_width'],
-                'image_height': self.config['image_height'],
-                'image_channels': self.config['image_channels'],
-                'sensor_dims': self.sensor_dims,
-                'n_layers': self.config['prim_n_layers'],
+                'sensor_dims': sensor_dims,
                 'num_filters': self.config.get('prim_filters', [32, 32]),
                 'filter_sizes': self.config.get('prim_filter_sizes', [7,5]),
-                'dim_hidden': self.config['prim_dim_hidden'],
-                'output_boundaries': self.config['prim_bounds'],
-                'aux_boundaries': self.config['aux_bounds'],
-                'types': self.task_types,
-            },
-            'label_network_params': {
-                'obs_include': self.config['agent']['prim_obs_include'],
-                'obs_image_data': [IM_ENUM, OVERHEAD_IMAGE_ENUM, LEFT_IMAGE_ENUM, RIGHT_IMAGE_ENUM],
-                'agent': self.agent,
                 'image_width': self.config['image_width'],
                 'image_height': self.config['image_height'],
                 'image_channels': self.config['image_channels'],
-                'sensor_dims': self.sensor_dims,
                 'n_layers': self.config['prim_n_layers'],
-                'num_filters': [32, 32],
-                'filter_sizes': [7, 5],
                 'dim_hidden': self.config['prim_dim_hidden'],
-                'output_boundaries': [(0,2)],
-                'aux_boundaries': self.config['aux_bounds'],
+                'output_boundaries': self.config['prim_bounds'],
                 'types': self.task_types,
+                'act_fn': self.config.get('act_fn', 'relu'),
+                'output_fn': self.config.get('output_fn', 'log_softmax'),
+                'loss_fn': self.config.get('loss_fn', 'nll_loss'),
+                'conv_to_fc': 'fp',
+                'normalize': False,
             },
+    
             'cont_network_params': {
                 'obs_include': self.config['agent']['cont_obs_include'],
-                'obs_image_data': [IM_ENUM, OVERHEAD_IMAGE_ENUM, LEFT_IMAGE_ENUM, RIGHT_IMAGE_ENUM],
+                'out_include': self.config['agent']['cont_out_include'],
+                'obs_image_data': obs_image_data,
                 'idx': self.agent._cont_obs_data_idx,
                 'image_width': self.config['image_width'],
                 'image_height': self.config['image_height'],
                 'image_channels': self.config['image_channels'],
-                'sensor_dims': self.sensor_dims,
+                'sensor_dims': sensor_dims,
                 'n_layers': self.config['prim_n_layers'],
                 'num_filters': self.config.get('cont_filters', [32, 32]),
                 'filter_sizes': self.config.get('cont_filter_sizes', [5, 5]),
                 'dim_hidden': self.config['prim_dim_hidden'],
                 'output_boundaries': self.config['cont_bounds'],
-                'aux_boundaries': [],
                 'types': self.task_types,
+                'act_fn': self.config.get('act_fn', 'relu'),
+                'output_fn': self.config.get('output_fn', None),
+                'loss_fn': self.config.get('loss_fn', 'precision_mse'),
+                'conv_to_fc': 'fp',
+                'normalize': True,
             },
-            'aux_boundaries': self.config['aux_bounds'],
+
             'lr': self.config['lr'],
             'hllr': self.config['hllr'],
+
             'network_model': network_model,
             'primitive_network_model': primitive_network_model,
             'cont_network_model': cont_network_model,
-            'iterations': self.config['train_iterations'],
-            'batch_size': self.config['batch_size'],
+
             'weight_decay': self.config['weight_decay'],
             'prim_weight_decay': self.config['prim_weight_decay'],
             'cont_weight_decay': self.config['cont_weight_decay'],
-            'val_weight_decay': self.config['prim_weight_decay'],
+
+            'update_size': self.config['update_size'],
+            'prim_update_size': self.config['prim_update_size'],
+
+            'batch_size': self.config['batch_size'],
             'weights_file_prefix': 'policy',
             'image_width': utils.IM_W,
             'image_height': utils.IM_H,
@@ -276,52 +242,15 @@ class MultiProcessMain(object):
             'task_list': self.task_list,
             'gpu_fraction': 0.25,
             'allow_growth': True,
-            'update_size': self.config['update_size'],
-            'prim_update_size': self.config['prim_update_size'],
-            'val_update_size': self.config['prim_update_size'],
-            'solver_type': self.config['solver_type'],
+            'split_nets': self.config.get('split_nets', False),
         }
-
-        self.alg_map = {}
-        alg_map = {}
-        for ind, task in enumerate(self.agent.task_list):
-            plan = [pl for lab, pl in self.agent.plans.items() if lab[0] == ind][0]
-            self.config['algorithm']['T'] = plan.horizon
-            alg_map[task] = copy.copy(self.config['algorithm'])
-        self.config['policy_opt'] = self.config['algorithm']['policy_opt']
-        self.config['policy_opt']['split_nets'] = self.config.get('split_nets', False)
-
-        self.config['algorithm'] = alg_map
-        for task in self.agent.task_list:
-            self.config['algorithm'][task]['policy_opt']['scope'] = 'value'
-            self.config['algorithm'][task]['policy_opt']['weight_dir'] = self.config['weight_dir']
-            self.config['algorithm'][task]['policy_opt']['prev'] = 'skip'
-            self.config['algorithm'][task]['agent'] = self.agent
-            self.config['algorithm'][task]['init_traj_distr']['T'] = alg_map[task]['T']
-            self.config['algorithm'][task]['task'] = task
-            self.alg_map[task] = self.config['algorithm'][task]['type'](self.config['algorithm'][task])
-            self.policy_opt = self.alg_map[task].policy_opt
-            self.alg_map[task].set_conditions(len(self.agent.x0))
-            self.alg_map[task].agent = self.agent
-
-        for task in self.agent.task_list:
-            self.config['algorithm'][task]['policy_opt']['prev'] = None
-        self.config['alg_map'] = self.alg_map
 
 
     def allocate_shared_buffers(self, config):
         buffers = {}
         buf_sizes = {}
-        #if self.config['policy_opt'].get('split_nets', False):
-        #    for scope in self.task_list:
-        #        buffers[scope] = mp.Array(ctypes.c_char, (2**28))
-        #        buf_sizes[scope] = mp.Value('i')
-        #        buf_sizes[scope].value = 0
-        #else:
-        #    buffers['control'] = mp.Array(ctypes.c_char, (2**28))
-        #    buf_sizes['control'] = mp.Value('i')
-        #    buf_sizes['control'].value = 0
         power = 26
+
         for task in self.pol_list:
             buffers[task] = mp.Array(ctypes.c_char, (2**power))
             buf_sizes[task] = mp.Value('i')
@@ -390,7 +319,7 @@ class MultiProcessMain(object):
 
 
     def create_pol_servers(self, hyperparams):
-        for task in self.pol_list+('primitive', 'cont', 'label'):
+        for task in self.pol_list+('primitive', 'cont'):
             new_hyperparams = copy.copy(hyperparams)
             new_hyperparams['scope'] = task
             new_hyperparams['id'] = task
@@ -411,9 +340,6 @@ class MultiProcessMain(object):
 
         for n in range(hyperparams['num_rollout']):
             self._create_server(hyperparams, RolloutServer, start_idx+n)
-
-        if hyperparams['label_server']:
-            self._create_server(hyperparams, LabelServer, 'labelserver')
 
         hyperparams = copy.copy(hyperparams)
         hyperparams['run_hl_test'] = True
@@ -544,7 +470,6 @@ class MultiProcessMain(object):
         for task in self.pol_list:
             config['ll_queue'][task] = Queue(maxsize=train_queue_size)
         config['cont_queue'] = Queue(maxsize=train_queue_size)
-        config['label_queue'] = Queue(maxsize=train_queue_size)
 
         config['motion_queue'] = self.queue_manager.PriorityQueue(maxsize=queue_size)
         config['task_queue'] = self.queue_manager.PriorityQueue(maxsize=queue_size)
@@ -557,7 +482,6 @@ class MultiProcessMain(object):
 
 
     def hl_only_retrain(self):
-        software_constants.USE_ROS = False
         hyperparams = self.config
         hyperparams['id'] = 'test'
         hyperparams['scope'] = 'primitive'
@@ -578,7 +502,6 @@ class MultiProcessMain(object):
 
 
     def cont_only_retrain(self):
-        software_constants.USE_ROS = False
         hyperparams = self.config
         hyperparams['id'] = 'test'
         hyperparams['scope'] = 'cont'
@@ -599,7 +522,6 @@ class MultiProcessMain(object):
 
 
     def hl_retrain(self, hyperparams):
-        software_constants.USE_ROS = False
         hyperparams['run_mcts_rollouts'] = False
         hyperparams['run_alg_updates'] = False
         hyperparams['run_hl_test'] = True
@@ -615,7 +537,6 @@ class MultiProcessMain(object):
 
 
     def run_test(self, hyperparams):
-        software_constants.USE_ROS = False
         hyperparams['run_mcts_rollouts'] = False
         hyperparams['run_alg_updates'] = False
         hyperparams['run_hl_test'] = True

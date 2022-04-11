@@ -25,8 +25,17 @@ class TorchNet(nn.Module):
         self.conv_layers = []
         self.fc_layers = []
 
+        self.fc_input_dim = 0
+        for sensor in self.config['obs_include']:
+            dim = self.config['sensor_dims'][sensor]
+            self.fc_input_dim += dim
+
+        self.output_dim = 0
+        for sensor in self.config['out_include']:
+            dim = self.config['sensor_dims'][sensor]
+            self.output_dim += dim
+
         self._compute_idx()
-        self.fc_input_dim = config['dim_input']
         self._build_conv_layers()
         
         self.conv_to_fc = config.get('conv_to_fc', 'fp')
@@ -80,18 +89,25 @@ class TorchNet(nn.Module):
 
     def _compute_idx(self):
         if 'idx' in self.config:
-            self.x_idx, self.img_idx = self.config['idx']
+            self.idx = self.config['idx']
+            self.x_idx, self.img_idx = [], []
+            for (sensor, inds) in self.idx.items():
+                if sensor in self.config['obs_image_data']:
+                    self.img_idx.extend(inds)
+                else:
+                    self.x_idx.extend(inds)
+
         else:
-            x_idx, img_idx, i = [], [], 0
+            self.x_idx, self.img_idx, i = [], [], 0
             for sensor in self.config['obs_include']:
                 dim = self.config['sensor_dims'][sensor]
+
                 if sensor in self.config['obs_image_data']:
-                    img_idx = img_idx + list(range(i, i+dim))
+                    self.img_idx = self.img_idx + list(range(i, i+dim))
                 else:
-                    x_idx = x_idx + list(range(i, i+dim))
+                    self.x_idx = self.x_idx + list(range(i, i+dim))
+
                 i += dim
-            self.x_idx = x_idx
-            self.img_idx = img_idx
 
 
     def _set_nonlin_and_loss(self):
@@ -143,8 +159,7 @@ class TorchNet(nn.Module):
             cur_dim = next_dim
             self.fc_layers.append(fc_layer)
 
-        dim_output = self.config['dim_output']
-        fc_layer = nn.Linear(cur_dim, dim_output)
+        fc_layer = nn.Linear(cur_dim, self.output_dim)
         self.fc_layers.append(fc_layer)
 
 

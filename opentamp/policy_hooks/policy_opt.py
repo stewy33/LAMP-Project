@@ -11,7 +11,6 @@ import traceback
 
 import numpy as np
 from opentamp.policy_hooks.utils.policy_solver_utils import *
-#from opentamp.policy_hooks.tf_policy import TfPolicy
 from opentamp.policy_hooks.torch_models import *
 
 MAX_UPDATE_SIZE = 10000
@@ -19,7 +18,7 @@ SCOPE_LIST = ['primitive', 'cont']
 MODEL_DIR = 'saved_models/'
 
 
-class PolicyOpt():
+class TorchPolicyOpt():
     def __init__(self, hyperparams):
         self.config = hyperparams
         self.scope = hyperparams.get('scope', None)
@@ -279,9 +278,11 @@ class PolicyOpt():
 
 
     def _init_network(self, scope):
-        config = self._hyperparams['network_model']
+        config = self._hyperparams['ll_network_params']
         if 'primitive' == scope:
-            config = self._hyperparams['primitive_network_model']
+            config = self._hyperparams['hl_network_params']
+        elif 'cont' == scope:
+            config = self._hyperparams['cont_network_params']
 
         dO, dU = self.select_dims(scope)
         config['dim_input'] = dO
