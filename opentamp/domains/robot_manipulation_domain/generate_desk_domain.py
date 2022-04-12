@@ -1303,6 +1303,7 @@ class PlaceInDoorArm(PlaceInDoor):
         self.pre.extend([('(NearGripper{} ?robot ?item)'.format(arm), '0:0'),
                          #('(forall (?obj - Reachable) (not (NearApproach{} ?robot ?obj)))'.format(arm), '{0}:{1}'.format(0, -1)),
                          ('(NearGripper{} ?robot ?item)'.format(arm), '1:{}'.format(self.putdown_time)),
+                         #('(NearGripper{} ?robot ?item)'.format(arm), '{}:{}'.format(self.putdown_time, self.putdown_time)),
                          #('(not (NearGripper{} ?robot ?item))'.format(arm), 
                          #('(Stationary{}Arm ?robot)'.format(arm), '{0}:{0}'.format(self.putdown_time-1)),
                          #    '{}:{}'.format(self.putdown_time+self.steps, self.end-1)),
@@ -1311,8 +1312,8 @@ class PlaceInDoorArm(PlaceInDoor):
                          #('(EERetreatInDoor{} ?robot ?door)'.format(arm), 
                          #    '{}:{}'.format(self.putdown_time+1, self.putdown_time+1)),
 
-                         #('(EEWeakRetreat{} ?robot ?item)'.format(arm), 
-                         #    '{}:{}'.format(self.putdown_time, self.putdown_time)),
+                         ('(EEWeakRetreat{} ?robot ?item)'.format(arm), 
+                             '{}:{}'.format(self.putdown_time, self.putdown_time)),
                          #('(EEAt{}Rot ?robot ?item)'.format(arm), 
                          #    '{}:{}'.format(self.putdown_time, self.putdown_time+1)),
 

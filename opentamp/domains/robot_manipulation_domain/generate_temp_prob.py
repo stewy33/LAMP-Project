@@ -2,37 +2,60 @@ from IPython import embed as shell
 import itertools
 import numpy as np
 import random
+import sys
+
+import opentamp
+import opentamp.core.util_classes.common_constants as const
 
 
 # SEED = 1234
 NUM_PROBS = 1
-filename = "probs/temp_pickplace_prob.prob"
-GOAL = "(RobotAt sawyer robot_end_pose)"
+filename = opentamp.__path__[0] + "/domains/robot_manipulation_domain/probs/temp_robodesk_prob.prob"
+GOAL = "(RobotAt panda robot_end_pose)"
 
 
-SAWYER_INIT_POSE = [-0.5, -0.1, 0.912]
-SAWYER_END_POSE = [0, 0, 0]
-R_ARM_INIT = [-0.3962099, -0.97739413, 0.04612799, 1.742205 , -0.03562013, 0.8089644, 0.45207395]
-OPEN_GRIPPER = [0.02, -0.01]
-CLOSE_GRIPPER = [0.01, -0.02]
+PANDA_INIT_POSE = [0., 0.1, 0.55]
+PANDA_INIT_ROT = [0, 0, 1.57]
+PANDA_END_POSE = [0., 0.1, 0.55]
+R_ARM_INIT = [ 1.73073538, -1.59141333, -1.71641699, -1.66823182, -0.52644825, 1.86648965, -1.06016141]
+OPEN_GRIPPER = [-0.0001, -0.0001]
+CLOSE_GRIPPER = [-0.0001, -0.0001]
 EE_POS = [0.11338, -0.16325, 1.03655]
 EE_ROT = [3.139, 0.00, -2.182]
 
-TABLE_GEOM = [1.23/2, 2.45/2, 0.97/2]
-TABLE_POS = [1.23/2-0.1, 0, -3.]
-TABLE_ROT = [0,0,0]
+SHELF_TARGET_POS = [0.3, 1.2, 0.85]
+SHELF_TARGET_ROT = [1.57, 0., 0.]
+BIN_TARGET_POS = [0.4, 0.52, 0.75]
+BIN_TARGET_ROT = [0., 0., 0.]
+OFF_DESK_TARGET_POS = [0.67, 0.54, 0.78] # [0.68, 0.58, 0.77]
+OFF_DESK_TARGET_ROT = [0., 0., 0.]
 
-def get_sawyer_pose_str(name, RArm = R_ARM_INIT, G = OPEN_GRIPPER, Pos = SAWYER_INIT_POSE):
+SHELF_GEOM = 'desk_shelf'
+SHELF_POS = [0., 0.85, 0.]
+SHELF_ROT = [0., 0., 0.]
+SHELF_HANDLE_POS = (np.array(SHELF_POS) + const.SHELF_HANDLE_POS).tolist()
+
+DESK_BODY_GEOM = [0.58, 0.27, 0.03] # [0.6, 0.275, 0.025]
+DESK_BODY_POS = [0., 0.85, 0.72] # 0.735]
+DESK_BODY_ROT = [0, 0, 0]
+
+DRAWER_GEOM = 'desk_drawer'
+DRAWER_POS = [0., 0.85, 0.655]
+DRAWER_ROT = [0. ,0., 0.]
+DRAWER_HANDLE_POS = (np.array(DRAWER_POS) + const.DRAWER_HANDLE_POS).tolist()
+
+
+def get_panda_pose_str(name, RArm = R_ARM_INIT, G = OPEN_GRIPPER, Pos = PANDA_INIT_POSE, Rot = PANDA_INIT_ROT):
     s = ""
     s += "(right {} {}), ".format(name, RArm)
     s += "(right_ee_pos {} {}), ".format(name, EE_POS)
     s += "(right_ee_rot {} {}), ".format(name, EE_ROT)
     s += "(right_gripper {} {}), ".format(name, G)
     s += "(value {} {}), ".format(name, Pos)
-    s += "(rotation {} {}), ".format(name, [0.,0.,0.])
+    s += "(rotation {} {}), ".format(name, Rot)
     return s
 
-def get_sawyer_str(name, RArm = R_ARM_INIT, G = OPEN_GRIPPER, Pos = SAWYER_INIT_POSE):
+def get_panda_str(name, RArm = R_ARM_INIT, G = OPEN_GRIPPER, Pos = PANDA_INIT_POSE, Rot = PANDA_INIT_ROT):
     s = ""
     s += "(geom {})".format(name)
     s += "(right {} {}), ".format(name, RArm)
@@ -40,7 +63,7 @@ def get_sawyer_str(name, RArm = R_ARM_INIT, G = OPEN_GRIPPER, Pos = SAWYER_INIT_
     s += "(right_ee_rot {} {}), ".format(name, EE_ROT)
     s += "(right_gripper {} {}), ".format(name, G)
     s += "(pose {} {}), ".format(name, Pos)
-    s += "(rotation {} {}), ".format(name, [0.,0.,0.])
+    s += "(rotation {} {}), ".format(name, Rot)
     return s
 
 def get_undefined_robot_pose_str(name):
@@ -64,83 +87,143 @@ def main():
 
     s += "# The values after each attribute name are the values that get passed into the __init__ method for that attribute's class defined in the domain configuration.\n"
     s += "Objects: "
-    s += "Sawyer (name sawyer); "
+    s += "Panda (name panda); "
 
-    for item in ['milk', 'bread', 'cereal', 'can']:
-        s += "SawyerPose (name {}); ".format("{0}_grasp_begin".format(item))
-        s += "SawyerPose (name {}); ".format("{0}_grasp_end".format(item))
-        s += "SawyerPose (name {}); ".format("{0}_putdown_begin".format(item))
-        s += "SawyerPose (name {}); ".format("{0}_putdown_end".format(item))
-        if item is 'can':
-            item_type = 'Can'
-        else:
+    items = ['upright_block', 'flat_block', 'ball', 'red_button', 'green_button', 'blue_button', \
+             'shelf_handle', 'drawer_handle']
+    init_pos = [[0.3576926 , 0.81993646, 0.8497845 ], [0.15, 0.63, 0.775], [-0.4, 0.7, 0.799], [-0.45, 0.59, 0.76], \
+                [-0.25, 0.59, 0.76], [-0.05, 0.59, 0.76], SHELF_HANDLE_POS, DRAWER_HANDLE_POS]
+    dims = [[0.09, 0.023, 0.023], [0.08, 0.035, 0.015], [0.04], \
+            [0.02, 0.02, 0.02], [0.02, 0.02, 0.02],  [0.02, 0.02, 0.02], \
+            [0.005, 0.005], [0.005, 0.005]]
+    item_types = []
+    for item in items:
+        if item.find('block') >= 0:
             item_type = 'Box'
-        s += "{} (name {}); ".format(item_type, item)
-        s += "{}Target (name {}_init_target); ".format(item_type, item)
-        s += "{}Target (name {}_end_target); ".format(item_type, item)
+        elif item.find('handle') >= 0:
+            item_type = 'Can' # 'Box'
+        elif item.find('button') >= 0:
+            item_type = 'Box'
+        elif item.find('ball') >= 0:
+            item_type = 'Sphere'
+        #elif item.find('handle') >= 0:
+        #    item_type = 'Handle'
+        else:
+            item_type = 'Can'
+        item_types.append(item_type)
 
-    s += "SawyerPose (name {}); ".format("robot_init_pose")
-    s += "SawyerPose (name {}); ".format("robot_end_pose")
-    s += "Obstacle (name {}) \n\n".format("table")
+    for ind, item in enumerate(items):
+        #s += "PandaPose (name {}); ".format("{0}_grasp_begin".format(item))
+        #s += "PandaPose (name {}); ".format("{0}_grasp_end".format(item))
+        #s += "PandaPose (name {}); ".format("{0}_putdown_begin".format(item))
+        #s += "PandaPose (name {}); ".format("{0}_putdown_end".format(item))
+
+        item_type = item_types[ind]
+        s += "{} (name {}); ".format(item_type, item)
+        #s += "Target (name {}_init_target); ".format(item)
+        #s += "Target (name {}_end_target); ".format(item)
+
+    s += "Target (name bin_target); "
+    s += "Target (name off_desk_target); "
+    s += "PandaPose (name {}); ".format("robot_init_pose")
+    s += "PandaPose (name {}); ".format("robot_end_pose")
+    s += "Door (name shelf);"
+    s += "Obstacle (name desk_body);"
+    s += "Door (name drawer) \n\n"
 
     s += "Init: "
-    dims = [[0.0225, 0.0225, 0.06], [0.02, 0.02, 0.02], [0.05, 0.02, 0.065], [0.02, 0.04]]
-    s += "(geom milk {0}), ".format(dims[0])
-    s += "(geom bread {0}), ".format(dims[1])
-    s += "(geom cereal {0}), ".format(dims[2])
-    s += "(geom can {0} {1}), ".format(dims[3][0], dims[3][1])
-    s += "(geom milk_end_target {0}), ".format(dims[0])
-    s += "(geom bread_end_target {0}), ".format(dims[1])
-    s += "(geom cereal_end_target {0}), ".format(dims[2])
-    s += "(geom can_end_target {0} {1}), ".format(dims[3][0], dims[3][1])
-    s += "(geom milk_init_target {0}), ".format(dims[0])
-    s += "(geom bread_init_target {0}), ".format(dims[1])
-    s += "(geom cereal_init_target {0}), ".format(dims[2])
-    s += "(geom can_init_target {0} {1}), ".format(dims[3][0], dims[3][1])
-    end_targets = [[0.0025, 0.1575, 0.885], [0.1975, 0.1575, 0.845], [0.0025, 0.4025, 0.9], [0.1975, 0.4025, 0.86]]
-    for ind, item in enumerate(['milk', 'bread', 'cereal', 'can']):
-        s += "(pose {0} {1}), ".format(item, [0, 0, 0])
-        s += "(rotation {0} {1}), ".format(item, [0, 0, 0])
-        s += "(value {0}_init_target [0, 0, 0]), ".format(item)
-        s += "(rotation {0}_init_target [0, 0, 0]), ".format(item)
-        s += "(value {}_end_target {}), ".format(item, end_targets[ind])
-        s += "(rotation {}_end_target [0, 0, 0]), ".format(item)
+    rots = {'shelf_handle': const.SHELF_HANDLE_ORN, 
+            'upright_block': [1.57, 1.57, 0.],
+            'flat_block': [0., 0., 0.],
+            'drawer_handle': const.DRAWER_HANDLE_ORN,}
+    for ind, item in enumerate(items):
+        dim = dims[ind]
+        item_type = item_types[ind]
+        if item_type.lower() == 'sphere':
+            tail_str = ' {}), '.format(dim[0])
+        elif item_type.lower() == 'can' or item_type.lower() == 'handle':
+            tail_str = ' {} {}), '.format(dim[0], dim[1])
+        else:
+            tail_str = ' {}), '.format(dim)
+        rot = rots.get(item, [0.,0.,0.])
+        s += "(geom {} {}".format(item, tail_str)
+        #s += "(geom {}_init_target {}".format(item, tail_str)
+        #s += "(geom {}_end_target {}".format(item, tail_str)
 
-        s += get_undefined_robot_pose_str("{0}_grasp_begin".format(item))
-        s += get_undefined_robot_pose_str("{0}_grasp_end".format(item))
-        s += get_undefined_robot_pose_str("{0}_putdown_begin".format(item))
-        s += get_undefined_robot_pose_str("{0}_putdown_end".format(item))
-    s += get_sawyer_str('sawyer', R_ARM_INIT, OPEN_GRIPPER, SAWYER_INIT_POSE)
-    s += get_sawyer_pose_str('robot_init_pose', R_ARM_INIT, OPEN_GRIPPER, SAWYER_INIT_POSE)
+        s += "(pose {0} {1}), ".format(item, init_pos[ind])
+        s += "(rotation {0} {1}), ".format(item, rot)
+
+        #s += "(value {}_init_target {}), ".format(item, init_pos[ind])
+        #s += "(rotation {}_init_target {}), ".format(item, rot)
+
+        #s += "(value {}_end_target {}), ".format(item, init_pos[ind])
+        #s += "(rotation {}_end_target {}), ".format(item, rot)
+
+        #s += get_undefined_robot_pose_str("{0}_grasp_begin".format(item))
+        #s += get_undefined_robot_pose_str("{0}_grasp_end".format(item))
+        #s += get_undefined_robot_pose_str("{0}_putdown_begin".format(item))
+        #s += get_undefined_robot_pose_str("{0}_putdown_end".format(item))
+
+    s += "(hinge drawer [0.])"
+    s += "(hinge shelf [0.])"
+
+    s += get_panda_str('panda', R_ARM_INIT, OPEN_GRIPPER, PANDA_INIT_POSE)
+    s += get_panda_pose_str('robot_init_pose', R_ARM_INIT, OPEN_GRIPPER, PANDA_INIT_POSE)
     s += get_undefined_robot_pose_str('robot_end_pose')
 
-    s += "(geom table {}), ".format(TABLE_GEOM)
-    s += "(pose table {}), ".format(TABLE_POS)
-    s += "(rotation table {}); ".format(TABLE_ROT)
+    s += "(value bin_target {}), ".format(BIN_TARGET_POS)
+    s += "(rotation bin_target {}), ".format(BIN_TARGET_ROT)
+    s += "(value off_desk_target {}), ".format(OFF_DESK_TARGET_POS)
+    s += "(rotation off_desk_target {}), ".format(OFF_DESK_TARGET_ROT)
 
-    for item in ['milk', 'bread', 'can', 'cereal']:
-        s += "(At {0} {0}_init_target), ".format(item)
-        s += "(AtInit {0} {0}_init_target), ".format(item)
-        s += "(Near {0} {0}_init_target), ".format(item)
-    s += "(RobotAt sawyer robot_init_pose),"
-    s += "(StationaryBase sawyer), "
-    s += "(HeightBlock bread cereal), "
-    s += "(HeightBlock can cereal), "
-    s += "(HeightBlock milk cereal), "
-    s += "(HeightBlock bread milk), "
-    s += "(HeightBlock can milk), "
-    s += "(HeightBlock bread can), "
-    s += "(IsMP sawyer), "
-    s += "(WithinJointLimit sawyer), "
-    s += "(StationaryW table) \n\n"
+    s += "(geom shelf {}), ".format(SHELF_GEOM)
+    s += "(pose shelf {}), ".format(SHELF_POS)
+    s += "(hinge shelf {}), ".format([0.])
+    s += "(rotation shelf {}), ".format(SHELF_ROT)
+
+    s += "(geom desk_body {}), ".format(DESK_BODY_GEOM)
+    s += "(pose desk_body {}), ".format(DESK_BODY_POS)
+    s += "(rotation desk_body {}), ".format(DESK_BODY_ROT)
+
+    s += "(geom drawer {}), ".format(DRAWER_GEOM)
+    s += "(pose drawer {}), ".format(DRAWER_POS)
+    s += "(hinge drawer {}), ".format([0.])
+    s += "(rotation drawer {}); ".format(DRAWER_ROT)
+
+    for item in items:
+        if item.find('blue') >= 0 or item.find('red') >= 0: continue
+        #s += "(At {0} {0}_init_target), ".format(item)
+        #s += "(Near {0} {0}_init_target), ".format(item)
+        s += "(InReach {0} panda), ".format(item)
+    s += "(RobotAt panda robot_init_pose),"
+    s += "(Stackable flat_block upright_block), "
+    s += "(DeskHeightBlock flat_block upright_block), "
+    s += "(DeskHeightBlock shelf_handle upright_block), "
+    s += "(StationaryBase panda), "
+    s += "(IsMP panda), "
+    s += "(SlideDoorOpen shelf_handle shelf), "
+    s += "(SlideDoorClose drawer_handle drawer), "
+    s += "(WithinJointLimit panda), "
+    s += "(NearGripperRight panda upright_block), "
+    s += "(StationaryW desk_body) \n\n"
 
     s += "Goal: {}\n\n".format(GOAL)
 
     s += "Invariants: "
-    s += "(StationaryBase sawyer), "
-    #s += "(EEIsMP sawyer), "
-    #s += "(RightGripperDownRot sawyer), "
-    #s += "(RightEEValid sawyer), "
+    s += "(StationaryBase panda), "
+    s += "(StationaryRot drawer_handle), "
+    s += "(StationaryRot shelf_handle), "
+    s += "(StationaryXZ drawer_handle), "
+    s += "(StationaryYZ shelf_handle), "
+    s += "(SlideDoorAt shelf_handle shelf), "
+    s += "(SlideDoorAt drawer_handle drawer), "
+    s += "(StationaryW desk_body), "
+    s += "(Stationary red_button), "
+    s += "(Stationary green_button), "
+    s += "(Stationary blue_button), "
+    s += "(Fixed red_button), "
+    s += "(Fixed green_button), "
+    s += "(Fixed blue_button), "
     s += "\n\n"
 
     with open(filename, "w") as f:

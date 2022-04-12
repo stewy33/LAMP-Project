@@ -9,7 +9,6 @@ import os, psutil
 
 import torch
 
-from opentamp.policy_hooks.policy_opt import PolicyOpt
 from opentamp.policy_hooks.queued_dataset import QueuedDataset
 from opentamp.policy_hooks.utils.file_utils import LOG_DIR
 from opentamp.policy_hooks.utils.policy_solver_utils import *

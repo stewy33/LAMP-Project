@@ -216,16 +216,24 @@ class OpenRAVEViewer(Viewer):
                 continue
 
 class PyBulletViewer(Viewer):
-    def __init__(self, envid=None):
-        if envid is None:
-            if not P.getConnectionInfo()['isConnected']:
-                server = P.GUI
-                envid = P.connect(server)
-                P.resetSimulation()
+    def __init__(self, envid=None, force_new=False):
+        if envid is None and not P.getConnectionInfo()['isConnected']:
+            server = P.GUI
+            envid = P.connect(server)
+            P.resetSimulation()
 
         self.env = envid
         self.name_to_rave_body = {}
         PyBulletViewer._viewer = self
+
+    def simHelper(plan, ts, time_limit=10):
+        # This will just tell PyBullet to keep resetting to the same timestep
+        # It helps get around an issue on Macs where the viewer will freeze
+        # unless calls are actively being made to the simulator
+        start_t = time.time()
+        while time.time() - start_t < time_limit:
+            # p.stepSimulation()
+            plan.set_to_time(ts)
 
     def clear(self):
         for b in self.name_to_rave_body.values():

@@ -168,10 +168,10 @@ def main():
         time.sleep(120.)
         print('RUNNING...')
         active = False
-            p_info = cur_main.check_processes()
-            print(('PINFO {0}'.format(p_info)))
-            active = active or any([code is None for code in p_info])
-            #if active: cur_main.expand_rollout_servers()
+        p_info = cur_main.check_processes()
+        print(('PINFO {0}'.format(p_info)))
+        active = active or any([code is None for code in p_info])
+        #if active: cur_main.expand_rollout_servers()
 
     if not active:
         cur_main.kill_processes()

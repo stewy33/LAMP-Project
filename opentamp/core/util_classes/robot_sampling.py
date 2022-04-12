@@ -531,9 +531,10 @@ def test_resample_order(attr_inds, res):
 
 #@profile
 def resample_eereachable(pred, negated, t, plan, inv=False, use_pos=True, use_rot=True, rel=True):
-    attr_inds, res = OrderedDict(), OrderedDict()
     acts = [a for a in plan.actions if a.active_timesteps[0] < t and a.active_timesteps[1] >= t]
     if not len(acts): return None, None
+
+    attr_inds, res = OrderedDict(), OrderedDict()
     x = pred.get_param_vector(t)
     obj_trans, robot_trans, axises, arm_joints = pred.robot_obj_kinematics(x)
     robot, robot_body = pred.robot, pred._param_to_body[pred.robot]
@@ -544,6 +545,7 @@ def resample_eereachable(pred, negated, t, plan, inv=False, use_pos=True, use_ro
     if hasattr(pred, 'obj'):
         targ_pos = pred.obj.pose[:,t].copy()
         targ_rot = pred.obj.rotation[:,t].copy()
+
     elif hasattr(pred, 'targ'):
         targ_pos = pred.targ.value[:,0].copy()
         targ_rot = pred.targ.rotation[:,0].copy()
@@ -565,19 +567,17 @@ def resample_eereachable(pred, negated, t, plan, inv=False, use_pos=True, use_ro
     p_st, p_et = max(a_st, t+st), min(a_et, t+et+1)
     for ts in range(p_st, p_et):
         if use_pos:
-            #dist = pred.approach_dist if ts <= t else pred.retreat_dist
-            #vec = -np.array(pred.rel_pt) - dist * np.abs(t-ts) * pred.axis
             vec = np.array(pred.rel_pt) + pred.get_rel_pt(ts-t)
-            if rel:
-                #vec = obj_mat.dot(vec)
-                vec = obj_trans[:3,:3].dot(vec)
-            targ_pos = base_targ_pos+vec
+            if rel: vec = obj_trans[:3,:3].dot(vec)
+            targ_pos = base_targ_pos + vec
+
         else:
             targ_pos = np.array(cur_pos)
 
         quat = quat if use_rot else cur_quat
         ik = robot_body.get_ik_from_pose(targ_pos, quat, arm)
         add_to_attr_inds_and_res(ts, attr_inds, res, robot, [(arm, np.array(ik).flatten())])
+
     return res, attr_inds
 
 
@@ -589,16 +589,18 @@ def resample_in_gripper(pred, negated, t, plan):
     x = pred.get_param_vector(t)
     obj_trans, robot_trans, axises, arm_joints = pred.robot_obj_kinematics(x)
     robot, robot_body = pred.robot, pred._param_to_body[pred.robot]
-    obj, obj_body = pred.obj, pred._param_to_body[pred.obj]
 
     act = acts[0]
     a_st, a_et = act.active_timesteps
 
     if hasattr(pred, 'obj'):
-        targ_pos = pred.obj.pose[:,t].copy()
+        obj = pred.obj
+        # targ_pos = pred.obj.pose[:,t].copy()
         targ_rot = pred.obj.rotation[:,t].copy()
+
     elif hasattr(pred, 'targ'):
-        targ_pos = pred.targ.value[:,0].copy()
+        obj = pred.targ
+        # targ_pos = pred.targ.value[:,0].copy()
         targ_rot = pred.targ.rotation[:,0].copy()
 
     arm = pred.arm
@@ -610,23 +612,66 @@ def resample_in_gripper(pred, negated, t, plan):
     quat = T.mat2quat(obj_mat.dot(robot_mat))
     robot_body.set_pose(robot.pose[:,t], robot.rotation[:,t])
     robot_body.set_dof({arm: getattr(robot, arm)[:,t]})
-    cur_info = robot_body.fwd_kinematics(arm)
-    cur_pos, cur_quat = cur_info['pos'], cur_info['quat']
+    # cur_info = robot_body.fwd_kinematics(arm)
+    # cur_pos, cur_quat = cur_info['pos'], cur_info['quat']
 
-    base_targ_pos = targ_pos
-    n_steps = 2
+    if hasattr(obj, 'geom') and hasattr(obj.geom, 'grasp_point'):
+        grasp_pt = np.array(obj.geom.grasp_point)
+
+    # base_targ_pos = targ_pos
+    grasp_pt = np.zeros(3)
+    grip_off = obj_trans[:3,:3].dot(grasp_pt)
+    # targ_pos = base_targ_pos + grip_off
+    # ik = robot_body.get_ik_from_pose(targ_pos, quat, arm)
+
+    # add_to_attr_inds_and_res(t, 
+    #                          attr_inds, 
+    #                          res, 
+    #                          robot, 
+    #                          [(arm, np.array(ik).flatten())])
+
+    n_steps = 3
     p_st, p_et = max(a_st, t-n_steps), min(a_et, t+n_steps+1)
+    avg_pose = False
     for ts in range(p_st, p_et):
-        grasp_pt = obj.geom.grasp_point if hasattr(obj.geom, 'grasp_point') else np.zeros(3)
-        vec = np.array(grasp_pt)
-        if ts < t:
-            vec += np.array([0., 0., np.abs(ts-t)*const.APPROACH_DIST])
-        else:
-            vec += np.array([0., 0., np.abs(ts-t)*const.RETREAT_DIST])
+        grip_off = obj_trans[:3,:3].dot(grasp_pt)
 
-        vec = obj_trans[:3,:3].dot(vec)
-        targ_pos = base_targ_pos+vec
-        ik = robot_body.get_ik_from_pose(targ_pos, quat, arm)
-        add_to_attr_inds_and_res(ts, attr_inds, res, robot, [(arm, np.array(ik).flatten())])
+        # if ts < t:
+        #     vec = obj_trans[:3,:3].dot(np.array([0., 0., np.abs(ts-t)*const.APPROACH_DIST]))
+        # else:
+        #     vec = obj_trans[:3,:3].dot(np.array([0., 0., np.abs(ts-t)*const.RETREAT_DIST]))
+
+        if hasattr(pred, 'obj'):
+            obj = pred.obj
+            targ_pos = pred.obj.pose[:,ts].copy()
+
+        elif hasattr(pred, 'targ'):
+            obj = pred.targ
+            targ_pos = pred.targ.value[:,0].copy()
+
+        if avg_pose:
+            curcoeff = 0.5 # abs(t - ts) / n_steps
+            robot_body.set_dof({arm: getattr(robot, arm)[:,ts]})
+            cur_info = robot_body.fwd_kinematics(arm)
+            cur_pos, cur_quat = cur_info['pos'], cur_info['quat']
+            targ_pos = (1 - curcoeff) * targ_pos + curcoeff * (np.array(cur_pos) - grip_off)
+            # targ_pos = (targ_pos + (np.array(cur_pos) - grip_off)) / 2.
+
+        ik = robot_body.get_ik_from_pose(targ_pos + grip_off, quat, arm)
+
+        add_to_attr_inds_and_res(ts, 
+                                 attr_inds, 
+                                 res, 
+                                 robot, 
+                                 [(arm, np.array(ik).flatten())])
+
+        if not obj.is_symbol():
+            add_to_attr_inds_and_res(ts, 
+                                     attr_inds, 
+                                     res, 
+                                     obj, 
+                                     [('pose', targ_pos), 
+                                      ('rotation', targ_rot)])
+
     return res, attr_inds
 

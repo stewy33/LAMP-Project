@@ -63,6 +63,8 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
         self.master_config = hyperparams['master_config']
         self.rank = hyperparams['master_config'].get('rank', 0)
         self.process_id = self.master_config['id']
+
+        self._setup_exp_info()
         self.policies = {task: None for task in self.task_list}
         self.eta_scale = 1.
         self._noops = 0.
@@ -70,7 +72,6 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
         self.cont_samples = []
         self.task_paths = []
 
-        self._setup_exp_info()
         self._setup_traj_opt()
         self._setup_tracking_info()
 
@@ -82,16 +83,16 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
         self._samples = {task: [] for task in self.task_list}
         self.state_inds = self._hyperparams['state_inds']
         self.action_inds = self._hyperparams['action_inds']
-        self.image_width = hyperparams.get('image_width', utils.IM_W)
-        self.image_height = hyperparams.get('image_height', utils.IM_H)
-        self.image_channels = hyperparams.get('image_channels', utils.IM_C)
+        self.image_width = self._hyperparams.get('image_width', utils.IM_W)
+        self.image_height = self._hyperparams.get('image_height', utils.IM_H)
+        self.image_channels = self._hyperparams.get('image_channels', utils.IM_C)
         self.symbolic_bound = self._hyperparams['symbolic_bound']
         self.rollout_seed = self._hyperparams['rollout_seed']
         self.num_objs = self._hyperparams.get('num_objs', 1)
         self.rlen = self._hyperparams.get('rlen', 4 + 2 * self.num_objs * len(self.task_list))
         self.hor = self._hyperparams.get('horizon', 20)
         self._eval_mode = False
-        self.retime = hyperparams['master_config'].get('retime', False)
+        self.retime = self._hyperparams['master_config'].get('retime', False)
         if self.retime: self.rlen *= 2
         self.init_vecs = self._hyperparams['x0']
         self.x0 = [x[:self.symbolic_bound] for x in self.init_vecs]
@@ -108,7 +109,7 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
         self.incl_init_obs = self.master_config.get('incl_init_obs', False)
         self.incl_trans_obs = self.master_config.get('incl_trans_obs', False)
         self.incl_grip_obs = self.master_config.get('incl_grip_obs', False)
-        self.view = hyperparams['master_config'].get('view', False)
+        self.view = self._hyperparams['master_config'].get('view', False)
         self.camera_id = 0
         self.goal_type = self.master_config.get('goal_type', 'default')
         for condition in range(len(self.x0)):
@@ -121,6 +122,8 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
         self.discrete_prim = self._hyperparams.get('discrete_prim', True)
         self.swap = self._hyperparams['master_config'].get('swap', False)
         self.optimal_pol_cls = optimal_pol
+        self.hist_len = self._hyperparams['hist_len']
+        self.task_hist_len = self._hyperparams['master_config'].get('task_hist_len', 0)
         self._prev_U = np.zeros((self.hist_len, self.dU))
         self._x_delta = np.zeros((self.hist_len+1, self.dX))
         self._prev_task = np.zeros((self.task_hist_len, self.dPrimOut))
@@ -148,8 +151,6 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
         self.discrete_opts = [enum for enum, enum_opts in opts.items() if hasattr(enum_opts, '__len__')]
         self.continuous_opts = [enum for enum, enum_opts in opts.items() if not hasattr(enum_opts, '__len__')]
         #self.label_options = list(itertools.product(*[list(range(len(opts[e]))) for e in opts])) # range(self.num_tasks), *[range(n) for n in self.num_prims]))
-        self.hist_len = self._hyperparams['hist_len']
-        self.task_hist_len = self._hyperparams['master_config'].get('task_hist_len', 0)
         self.traj_hist = None
         self.reset_hist()
 
@@ -668,7 +669,7 @@ class TAMPAgent(Agent, metaclass=ABCMeta):
         return out
 
 
-    def sample_rollout(self, x0, act_st, act_et, task)
+    def sample_rollout(self, x0, act_st, act_et, task):
         policy = self.policies[self.task_list[task[0]]]
         if not self.policy_initialized(policy): return [], 1.
         hor = 2 * (act_et - act_st)

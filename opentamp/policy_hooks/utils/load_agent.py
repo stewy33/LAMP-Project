@@ -86,6 +86,7 @@ def load_agent(config):
         utils.LEFT_IMAGE_ENUM: im_h * im_w * im_c,
         utils.RIGHT_IMAGE_ENUM: im_h * im_w * im_c,
     }
+
     for enum in config['sensor_dims']:
         sensor_dims[enum] = config['sensor_dims'][enum]
 
@@ -94,16 +95,21 @@ def load_agent(config):
 
     if config.get('add_action_hist', False):
         config['prim_obs_include'].append(utils.TRAJ_HIST_ENUM)
+
     if config.get('add_obs_delta', False):
         config['prim_obs_include'].append(utils.STATE_DELTA_ENUM)
+
     if config.get('add_task_hist', False):
         config['prim_obs_include'].append(utils.TASK_HIST_ENUM)
+
     if config.get('add_hl_image', False):
         config['prim_obs_include'].append(utils.IM_ENUM)
         config['load_render'] = True
+
     if config.get('add_cont_image', False):
         config['cont_obs_include'].append(utils.IM_ENUM)
         config['load_render'] = True
+
     if config.get('add_image', False):
         config['obs_include'].append(utils.IM_ENUM)
         config['load_render'] = True
@@ -203,13 +209,11 @@ def load_agent(config):
         'prim_out_include': prim_out,
         'cont_obs_include': config['cont_obs_include'],
         'cont_out_include': cont_out,
-        'val_obs_include': config['val_obs_include'],
         'conditions': config['num_conds'],
         'solver': None,
         'rollout_seed': config.get('rollout_seed', False),
         'num_objs': config['num_objs'],
         'obj_list': [],
-        'stochastic_conditions': False,
         'image_width': im_w,
         'image_height': im_h,
         'image_channels': im_c,
@@ -217,7 +221,6 @@ def load_agent(config):
         'T': 1,
         'viewer': config.get('viewer', False),
         'model': None,
-        'get_hl_plan': None,
         'env': env,
         'openrave_bodies': openrave_bodies,
         'n_dirs': config.get('n_dirs', 1),
@@ -227,10 +230,9 @@ def load_agent(config):
         'mp_solver_type': config['mp_solver_type'],
         'robot_name': config['robot_name'],
         'split_nets': config.get('split_nets', True),
-        'policy_inf_coeff': config['policy_inf_coeff'],
-        'policy_out_coeff': config['policy_out_coeff'],
         'master_config': config,
     }
+
     agent_config['agent_load'] = True
     return agent_config
 

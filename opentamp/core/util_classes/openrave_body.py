@@ -578,10 +578,16 @@ class OpenRAVEBody(object):
             geom = param.openrave_body._geom
             for arm in geom.arms:
                 dof_map[arm] = getattr(param, arm)[:,t]
+
             for gripper in geom.grippers:
                 dof_map[gripper] = getattr(param, gripper)[:,t]
+
             self.set_dof(dof_map)
-            self.set_pose(pos)
+
+            if hasattr(param, 'rotation'):
+                self.set_pose(pos, param.rotation[:,t])
+            else:
+                self.set_pose(pos)
         else:
             self.set_pose(pos, param.rotation[:,t])
 

@@ -47,20 +47,20 @@ def init_robot_pred(pred, robot, params=[], robot_poses=[], attrs={}):
     for attr in attrs[robot]:
         if attr in r_geom.jnt_names:
             njnts = len(r_geom.jnt_names[attr])
-            robot_inds.append((attr, np.array(range(njnts), dtype=np.int)))
-            if len(robot_poses): pose_inds.append((attr, np.array(range(njnts), dtype=np.int)))
+            robot_inds.append((attr, np.array(range(njnts), dtype='int32')))
+            if len(robot_poses): pose_inds.append((attr, np.array(range(njnts), dtype='int32')))
         elif attr.find('ee_pos') >= 0:
-            robot_inds.append((attr, np.array(range(3), dtype=np.int)))
-            if len(robot_poses): pose_inds.append((attr, np.array(range(3), dtype=np.int)))
+            robot_inds.append((attr, np.array(range(3), dtype='int32')))
+            if len(robot_poses): pose_inds.append((attr, np.array(range(3), dtype='int32')))
         elif attr.find('ee_rot') >= 0:
-            robot_inds.append((attr, np.array(range(3), dtype=np.int)))
-            if len(robot_poses): pose_inds.append((attr, np.array(range(3), dtype=np.int)))
+            robot_inds.append((attr, np.array(range(3), dtype='int32')))
+            if len(robot_poses): pose_inds.append((attr, np.array(range(3), dtype='int32')))
         elif attr == 'pose':
-            robot_inds.append((attr, np.array(range(3), dtype=np.int)))
-            if len(robot_poses): pose_inds.append(('value', np.array(range(3), dtype=np.int)))
+            robot_inds.append((attr, np.array(range(3), dtype='int32')))
+            if len(robot_poses): pose_inds.append(('value', np.array(range(3), dtype='int32')))
         elif attr == 'rotation':
-            robot_inds.append((attr, np.array(range(3), dtype=np.int)))
-            if len(robot_poses): pose_inds.append(('rotation', np.array(range(3), dtype=np.int)))
+            robot_inds.append((attr, np.array(range(3), dtype='int32')))
+            if len(robot_poses): pose_inds.append(('rotation', np.array(range(3), dtype='int32')))
     #robot_inds = list(filter(lambda inds: inds[0] in attrs, r_geom.attr_map['robot']))
     if len(robot_poses):
         for pose in robot_poses:
@@ -240,7 +240,7 @@ class RobotPredicate(ExprPredicate):
             ee_pos, ee_rot = np.zeros((3,1)), np.zeros((3,1))
 
         ee_rot = ee_rot.flatten()
-        obj_trans = OpenRAVEBody.transform_from_obj_pose(ee_pos, [ee_rot[2], ee_rot[1], ee_rot[0]])
+        obj_trans = OpenRAVEBody.transform_from_obj_pose(ee_pos.flatten(), [ee_rot[2], ee_rot[1], ee_rot[0]])
         #obj_trans = OpenRAVEBody.transform_from_obj_pose(ee_pos, [ee_rot[0], ee_rot[1], ee_rot[2]])
         Rz, Ry, Rx = OpenRAVEBody._axis_rot_matrices(ee_pos, [ee_rot[2], ee_rot[1], ee_rot[0]])
         axises = [[0,0,1], np.dot(Rz, [0,1,0]), np.dot(Rz, np.dot(Ry, [1,0,0]))] # axises = [axis_z, axis_y, axis_x]
@@ -1263,10 +1263,10 @@ class At(ExprPredicate):
         assert len(params) == 2
         self.obj, self.target = params
         k = 'value' if self.target.is_symbol() else 'pose'
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype=np.int)),
-                                             ("rotation", np.array([0,1,2], dtype=np.int))]),
-                                 (self.target, [(k, np.array([0,1,2], dtype=np.int)),
-                                                ("rotation", np.array([0,1,2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype='int32')),
+                                             ("rotation", np.array([0,1,2], dtype='int32'))]),
+                                 (self.target, [(k, np.array([0,1,2], dtype='int32')),
+                                                ("rotation", np.array([0,1,2], dtype='int32'))])])
 
         A = np.c_[np.eye(6), -np.eye(6)]
         b, val = np.zeros((6, 1)), np.zeros((6, 1))
@@ -1286,8 +1286,8 @@ class AtRot(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.target = params
-        attr_inds = OrderedDict([(self.obj, [("rotation", np.array([0,1,2], dtype=np.int))]),
-                                 (self.target, [("rotation", np.array([0,1,2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("rotation", np.array([0,1,2], dtype='int32'))]),
+                                 (self.target, [("rotation", np.array([0,1,2], dtype='int32'))])])
 
         A = np.c_[np.eye(3), -np.eye(3)]
         b, val = np.zeros((3, 1)), np.zeros((3, 1))
@@ -1315,8 +1315,8 @@ class AtPose(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.target = params
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype=np.int))]),
-                                 (self.target, [("value", np.array([0,1,2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype='int32'))]),
+                                 (self.target, [("value", np.array([0,1,2], dtype='int32'))])])
 
         A = np.c_[np.r_[np.eye(3), -np.eye(3)], np.r_[-np.eye(3), np.eye(3)]]
         b, val = np.zeros((6, 1)), np.ones((6, 1))*1e-3
@@ -1336,10 +1336,10 @@ class Above(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.target = params
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([1,2], dtype=np.int)),
-                                             ("rotation", np.array([0,1,2], dtype=np.int))]),
-                                 (self.target, [("value", np.array([0,1,2], dtype=np.int)),
-                                                ("rotation", np.array([1,2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([1,2], dtype='int32')),
+                                             ("rotation", np.array([0,1,2], dtype='int32'))]),
+                                 (self.target, [("value", np.array([0,1,2], dtype='int32')),
+                                                ("rotation", np.array([1,2], dtype='int32'))])])
 
         A = np.c_[np.eye(5), -np.eye(5)]
         b, val = np.zeros((5, 1)), np.zeros((5, 1))
@@ -1365,12 +1365,12 @@ class Near(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.target = params
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype=np.int))]),
-                                 (self.target, [("value", np.array([0,1,2], dtype=np.int))])])
-        #attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype=np.int)),
-        #                                     ("rotation", np.array([0,1,2], dtype=np.int))]),
-        #                         (self.target, [("value", np.array([0,1,2], dtype=np.int)),
-        #                                        ("rotation", np.array([0,1,2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype='int32'))]),
+                                 (self.target, [("value", np.array([0,1,2], dtype='int32'))])])
+        #attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype='int32')),
+        #                                     ("rotation", np.array([0,1,2], dtype='int32'))]),
+        #                         (self.target, [("value", np.array([0,1,2], dtype='int32')),
+        #                                        ("rotation", np.array([0,1,2], dtype='int32'))])])
 
         A = np.c_[np.r_[np.eye(3), -np.eye(3)], np.r_[-np.eye(3), np.eye(3)]]
         b, val = np.zeros((6, 1)), NEAR_TOL*np.ones((6, 1))
@@ -1422,7 +1422,7 @@ class PoseAdjacent(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.robot_pose1, self.robot_pose2 = params
-        self.attr_inds =  OrderedDict([(self.robot_pose1, [('value', np.array([0,1,2], dtype=np.int))]), (self.robot_pose2, [('value', np.array([0,1,2], dtype=np.int))])])
+        self.attr_inds =  OrderedDict([(self.robot_pose1, [('value', np.array([0,1,2], dtype='int32'))]), (self.robot_pose2, [('value', np.array([0,1,2], dtype='int32'))])])
         self.attr_dim = 3
 
         # A = np.c_[np.eye(self.attr_dim), -np.eye(self.attr_dim)]
@@ -1577,8 +1577,8 @@ class Stationary(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.obj,  = params
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype=np.int)),
-                                             ("rotation", np.array([0,1,2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype='int32')),
+                                             ("rotation", np.array([0,1,2], dtype='int32'))])])
 
         A = np.c_[np.eye(6), -np.eye(6)]
         b, val = np.zeros((6, 1)), np.zeros((6, 1))
@@ -1600,7 +1600,7 @@ class StationaryRot(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.obj,  = params
-        attr_inds = OrderedDict([(self.obj, [("rotation", np.array([0,1,2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("rotation", np.array([0,1,2], dtype='int32'))])])
 
         A = np.c_[np.eye(3), -np.eye(3)]
         b, val = np.zeros((3, 1)), np.zeros((3, 1))
@@ -1622,7 +1622,7 @@ class StationaryBase(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.robot,  = params
-        self.attr_inds =  OrderedDict([(self.robot, [('pose', np.array([0,1,2], dtype=np.int))])])
+        self.attr_inds =  OrderedDict([(self.robot, [('pose', np.array([0,1,2], dtype='int32'))])])
         self.attr_dim = 3
 
         A = np.c_[np.eye(self.attr_dim), -np.eye(self.attr_dim)]
@@ -1646,7 +1646,7 @@ class StationaryBasePos(ExprPredicate):
         assert len(params) == 1
         self.robot,  = params
         self.attr_dim = 2
-        self.attr_inds =  OrderedDict([(self.robot, [('pose', np.array([0,1], dtype=np.int))])])
+        self.attr_inds =  OrderedDict([(self.robot, [('pose', np.array([0,1], dtype='int32'))])])
 
         A = np.c_[np.eye(self.attr_dim), -np.eye(self.attr_dim)]
         b, val = np.zeros((self.attr_dim, 1)), np.zeros((self.attr_dim, 1))
@@ -1726,7 +1726,7 @@ class StationaryW(ExprPredicate):
         for (attr, inds) in attr_inds:
             cur_attr_dim += len(inds)
 
-        w_inds = [(self.w, [(attr, np.array(inds, dtype=np.int)) for (attr, inds) in attr_inds])]
+        w_inds = [(self.w, [(attr, np.array(inds, dtype='int32')) for (attr, inds) in attr_inds])]
         attr_inds = OrderedDict(w_inds)
 
         A = np.c_[np.eye(cur_attr_dim), -np.eye(cur_attr_dim)]
@@ -1745,7 +1745,7 @@ class StationaryWNEq(ExprPredicate):
         for (attr, inds) in attr_inds:
             cur_attr_dim += len(inds)
 
-        w_inds = [(self.w, [(attr, np.array(inds, dtype=np.int)) for (attr, inds) in attr_inds])]
+        w_inds = [(self.w, [(attr, np.array(inds, dtype='int32')) for (attr, inds) in attr_inds])]
         attr_inds = OrderedDict(w_inds)
 
         A = np.c_[np.eye(cur_attr_dim), -np.eye(cur_attr_dim)]
@@ -1764,8 +1764,8 @@ class StationaryWBase(ExprPredicate):
     #@profile
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         self.w, = params
-        attr_inds = OrderedDict([(self.w, [("pose", np.array([0, 1, 2], dtype=np.int)),
-                                           ("rotation", np.array([0, 1, 2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.w, [("pose", np.array([0, 1, 2], dtype='int32')),
+                                           ("rotation", np.array([0, 1, 2], dtype='int32'))])])
         A = np.c_[np.eye(6), -np.eye(6)]
         b = np.zeros((6, 1))
         e = EqExpr(AffExpr(A, b), b)
@@ -1786,8 +1786,8 @@ class StationaryNEq(ExprPredicate):
             self.obj, = params
             self.obj_held = self.obj
 
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0, 1, 2], dtype=np.int)),
-                                             ("rotation", np.array([0, 1, 2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0, 1, 2], dtype='int32')),
+                                             ("rotation", np.array([0, 1, 2], dtype='int32'))])])
 
         if self.obj.name == self.obj_held.name:
             A = np.zeros((1, 12))
@@ -1803,7 +1803,7 @@ class StationaryXZ(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.obj,  = params
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,2], dtype='int32'))])])
 
         A = np.c_[np.eye(2), -np.eye(2)]
         b, val = np.zeros((2, 1)), np.zeros((2, 1))
@@ -1816,7 +1816,7 @@ class StationaryYZ(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.obj,  = params
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([1,2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([1,2], dtype='int32'))])])
 
         A = np.c_[np.eye(2), -np.eye(2)]
         b, val = np.zeros((2, 1)), np.zeros((2, 1))
@@ -1829,7 +1829,7 @@ class StationaryXY(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.obj,  = params
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1], dtype='int32'))])])
 
         A = np.c_[np.eye(2), -np.eye(2)]
         b, val = np.zeros((2, 1)), np.zeros((2, 1))
@@ -1871,9 +1871,9 @@ class SlideDoorAt(ExprPredicate):
             if val != 0: break
             ind += 1
 
-        attr_inds = OrderedDict([(self.handle, [("pose", np.array([0, 1, 2], dtype=np.int))]),
-                                 (self.door, [("pose", np.array([0, 1, 2], dtype=np.int)),
-                                                ("hinge", np.array([0], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.handle, [("pose", np.array([0, 1, 2], dtype='int32'))]),
+                                 (self.door, [("pose", np.array([0, 1, 2], dtype='int32')),
+                                                ("hinge", np.array([0], dtype='int32'))])])
 
         A = np.zeros((3,7))
         for i in range(3):
@@ -1900,9 +1900,9 @@ class OpenSlideDoorAt(ExprPredicate):
             if val != 0: break
             ind += 1
 
-        attr_inds = OrderedDict([(self.handle, [("pose", np.array([0, 1, 2], dtype=np.int))]),
-                                 (self.door, [("pose", np.array([0, 1, 2], dtype=np.int)),
-                                                ("hinge", np.array([0], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.handle, [("pose", np.array([0, 1, 2], dtype='int32'))]),
+                                 (self.door, [("pose", np.array([0, 1, 2], dtype='int32')),
+                                                ("hinge", np.array([0], dtype='int32'))])])
 
         A = np.zeros((3,7))
         for i in range(3):
@@ -1932,9 +1932,9 @@ class CloseSlideDoorAt(ExprPredicate):
             if val != 0: break
             ind += 1
 
-        attr_inds = OrderedDict([(self.handle, [("pose", np.array([0, 1, 2], dtype=np.int))]),
-                                 (self.door, [("pose", np.array([0, 1, 2], dtype=np.int)),
-                                                ("hinge", np.array([0], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.handle, [("pose", np.array([0, 1, 2], dtype='int32'))]),
+                                 (self.door, [("pose", np.array([0, 1, 2], dtype='int32')),
+                                                ("hinge", np.array([0], dtype='int32'))])])
 
         A = np.zeros((3,7))
         for i in range(3):
@@ -1964,7 +1964,7 @@ class SlideDoorAtOpen(ExprPredicate):
             if val != 0: break
             ind += 1
 
-        attr_inds = OrderedDict([(self.door, [("hinge", np.array([0], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.door, [("hinge", np.array([0], dtype='int32'))])])
 
         open_val = self.door.geom.open_val
         close_val = self.door.geom.close_val
@@ -1994,7 +1994,7 @@ class SlideDoorAtClose(ExprPredicate):
             if val != 0: break
             ind += 1
 
-        attr_inds = OrderedDict([(self.door, [("hinge", np.array([0], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.door, [("hinge", np.array([0], dtype='int32'))])])
 
         open_val = self.door.geom.open_val
         close_val = self.door.geom.close_val
@@ -2027,7 +2027,7 @@ class SlideDoorOpen(ExprPredicate):
             if val != 0: break
             ind += 1
 
-        attr_inds = OrderedDict([(self.door, [("hinge", np.array([0], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.door, [("hinge", np.array([0], dtype='int32'))])])
 
         open_val = self.door.geom.open_val
         close_val = self.door.geom.close_val
@@ -2057,7 +2057,7 @@ class SlideDoorClose(ExprPredicate):
             if val != 0: break
             ind += 1
 
-        attr_inds = OrderedDict([(self.door, [("hinge", np.array([0], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.door, [("hinge", np.array([0], dtype='int32'))])])
 
         open_val = self.door.geom.open_val
         close_val = self.door.geom.close_val
@@ -2089,10 +2089,10 @@ class InSlideDoor(ExprPredicate):
         #    if val != 0: break
         #    ind += 1
 
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0, 1, 2], dtype=np.int)),
-                                             ("rotation", np.array([0, 1, 2], dtype=np.int))]),
-                                 (self.door, [("pose", np.array([0, 1, 2], dtype=np.int)),
-                                              ("rotation", np.array([0, 1, 2], dtype=np.int))]),
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0, 1, 2], dtype='int32')),
+                                             ("rotation", np.array([0, 1, 2], dtype='int32'))]),
+                                 (self.door, [("pose", np.array([0, 1, 2], dtype='int32')),
+                                              ("rotation", np.array([0, 1, 2], dtype='int32'))]),
                                  ])
 
         A = np.c_[np.eye(6), -np.eye(6)]
@@ -2121,10 +2121,10 @@ class Stacked(ExprPredicate):
         self.obj, self.base_obj = params
         h1 = self.obj.geom.height if hasattr(self.obj.geom, 'height') else self.obj.geom.radius
         h2 = self.base_obj.geom.height if hasattr(self.base_obj.geom, 'height') else self.base_obj.geom.radius
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype=np.int)),
-                                             ("rotation", np.array([0,1,2], dtype=np.int))]),
-                                 (self.base_obj, [("pose", np.array([0,1,2], dtype=np.int)),
-                                                ("rotation", np.array([0,1,2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0,1,2], dtype='int32')),
+                                             ("rotation", np.array([0,1,2], dtype='int32'))]),
+                                 (self.base_obj, [("pose", np.array([0,1,2], dtype='int32')),
+                                                ("rotation", np.array([0,1,2], dtype='int32'))])])
 
         self.coeff = 2e-2
         self.rot_coeff = 5e-3
@@ -2696,8 +2696,8 @@ class EEReachable(PosePredicate):
 
     def resample(self, negated, t, plan):
         if negated: return None, None
-        if hasattr(self, 'obj') and 'door' in self.obj.geom.get_types():
-            return None, None
+        #if hasattr(self, 'obj') and 'door' in self.obj.geom.get_types():
+        #    return None, None
         return robot_sampling.resample_eereachable(self, negated, t, plan, inv=False, rel=self.eval_rel, use_rot=False)
 
 class EEReachableRot(EEReachable):
@@ -3002,7 +3002,7 @@ class EERetreatRight(EEReachable):
 class EEWeakRetreatRight(EERetreatRight):
     def __init__(self, name, params, expected_param_types, steps=const.EEREACHABLE_STEPS, env=None, debug=False):
         self.arm = "right"
-        self.coeff = const.NEAR_APPROACH_COEFF
+        self.coeff = const.WEAK_EEREACHABLE_COEFF
         super(EEWeakRetreatRight, self).__init__(name, params, expected_param_types, steps, env, debug)
         self.approach_dist = const.QUICK_RETREAT_DIST
         self.retreat_dist = const.QUICK_RETREAT_DIST
@@ -3367,10 +3367,10 @@ class Collides(CollisionPredicate):
             self.obj = params[0]
             self.obstacle = self.obj
 
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0, 1, 2], dtype=np.int)),
-                                             ("rotation", np.array([0, 1, 2], dtype=np.int))]),
-                                 (self.obstacle, [("pose", np.array([0, 1, 2], dtype=np.int)),
-                                                  ("rotation", np.array([0, 1, 2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0, 1, 2], dtype='int32')),
+                                             ("rotation", np.array([0, 1, 2], dtype='int32'))]),
+                                 (self.obstacle, [("pose", np.array([0, 1, 2], dtype='int32')),
+                                                  ("rotation", np.array([0, 1, 2], dtype='int32'))])])
         self._param_to_body = {self.obj: self.lazy_spawn_or_body(self.obj, self.obj.name, self.obj.geom),
                                self.obstacle: self.lazy_spawn_or_body(self.obstacle, self.obstacle.name, self.obstacle.geom)}
 
@@ -3789,8 +3789,8 @@ class HeightBlock(ExprPredicate):
         self.block_h = block_geom.height if hasattr(block_geom, 'height') else block_geom.radius
         self.dist = 0.1
 
-        attr_inds = OrderedDict([(self.goal_obj, [("pose", np.array([0,1,2], dtype=np.int))]),
-                                 (self.block_obj, [("pose", np.array([0,1,2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.goal_obj, [("pose", np.array([0,1,2], dtype='int32'))]),
+                                 (self.block_obj, [("pose", np.array([0,1,2], dtype='int32'))])])
 
         A = np.c_[np.r_[np.eye(3), -np.eye(3)], np.r_[-np.eye(3), np.eye(3)]]
         A *= 0
@@ -3828,8 +3828,8 @@ class DeskHeightBlock(ExprPredicate):
         self.block_h = block_geom.height if hasattr(block_geom, 'height') else block_geom.radius
         self.dist = 0.1
 
-        attr_inds = OrderedDict([(self.goal_obj, [("pose", np.array([0,1,2], dtype=np.int))]),
-                                 (self.block_obj, [("pose", np.array([0,1,2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.goal_obj, [("pose", np.array([0,1,2], dtype='int32'))]),
+                                 (self.block_obj, [("pose", np.array([0,1,2], dtype='int32'))])])
 
         A = np.c_[np.r_[np.eye(3), -np.eye(3)], np.r_[-np.eye(3), np.eye(3)]]
         A *= 0
@@ -3881,7 +3881,7 @@ class AboveTable(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 1
         self.obj, = params
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype='int32'))])])
         A = -np.ones((1,1))
         z = 1.0 if self.obj.name in ['milk', 'cereal'] else 0.95
         b = z * np.ones((1,1))
@@ -3897,8 +3897,8 @@ class LiftedAboveTable(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.table = params
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype=np.int))]),
-                                 (self.table, [("pose", np.array([2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype='int32'))]),
+                                 (self.table, [("pose", np.array([2], dtype='int32'))])])
             
         A = np.array([[-1.,1.]])
 
@@ -3914,7 +3914,7 @@ class Lifted(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.robot = params
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype='int32'))])])
             
         A = np.array([[-1.]])
 
@@ -3938,7 +3938,7 @@ class InReach(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.robot = params
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype='int32'))])])
             
         A = np.array([[-1.]])
         if self.obj.name.find('upright') >= 0:
@@ -3959,7 +3959,7 @@ class Stackable(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.item = params
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([2], dtype='int32'))])])
             
         A = np.array([[1.]])
         if self.obj.name.find('flat') >= 0 and self.item.name.find('upright') >= 0:
@@ -3978,7 +3978,7 @@ class OffDesk(ExprPredicate):
     def __init__(self, name, params, expected_param_types, env=None, debug=False):
         assert len(params) == 2
         self.obj, self.robot = params
-        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0], dtype=np.int))])])
+        attr_inds = OrderedDict([(self.obj, [("pose", np.array([0], dtype='int32'))])])
             
         A = np.array([[-1.]])
         b = 0.62 * np.ones((1,1))

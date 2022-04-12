@@ -27,7 +27,7 @@ import opentamp.policy_hooks.hl_retrain as hl_retrain
 from opentamp.policy_hooks.utils.load_agent import *
 from opentamp.policy_hooks.utils.load_task_definitions import *
 from opentamp.policy_hooks.utils.policy_solver_utils import *
-from opentamp.policy_info_log.utils.file_utils import *
+from opentamp.policy_hooks.utils.file_utils import *
 import opentamp.policy_hooks.utils.policy_solver_utils as utils
 
 

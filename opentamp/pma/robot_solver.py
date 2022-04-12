@@ -292,12 +292,12 @@ def robot_obj_pose_suggester(plan, anum, resample_size=20, st=0):
             door_pose = door_val(door, is_open, st)
             pose = {robot: pose, door: door_pose}
 
-        #if a_name.find('place_in_door') >= 0:
-        #    door = act.params[1]
-        #    obj = act.params[2]
-        #    obj_pose = {'pose': (door.pose[:, st] + np.array(door.geom.in_pos)).reshape((3,1)),
-        #               'rotation': np.array(door.geom.in_orn).reshape((3,1))}
-        #    pose = {robot: pose, obj: obj_pose}
+        # if a_name.find('place_in_door') >= 0:
+        #     door = act.params[1]
+        #     obj = act.params[2]
+        #     obj_pose = {'pose': (door.pose[:, st] + np.array(door.geom.in_pos)).reshape((3,1)),
+        #                'rotation': np.array(door.geom.in_orn).reshape((3,1))}
+        #     pose = {robot: pose, obj: obj_pose}
 
         if pose is None: break
         robot_pose.append(pose)

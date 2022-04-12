@@ -53,7 +53,7 @@ class Plan(object):
             for k, v in list(p.__dict__.items()):
                 if type(v) == np.ndarray and k not in p._free_attrs:
                     ## free variables are indicated as numpy arrays of NaNs
-                    arr = np.zeros(v.shape, dtype=np.int)
+                    arr = np.zeros(v.shape, dtype='int32')
                     arr[np.isnan(v)] = 1
                     p._free_attrs[k] = arr
 
@@ -327,8 +327,10 @@ class Plan(object):
                 vals[pname, attr] = getattr(param, attr).copy()
         return vals
 
-
     def store_values(self, vals):
         for param, attr in vals:
             getattr(self.params[param], attr)[:] = vals[param, attr]
 
+    def set_to_time(self, ts):
+        for param in self.params.values():
+            param.set_to_time(ts)

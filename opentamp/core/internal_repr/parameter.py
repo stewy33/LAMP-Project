@@ -139,6 +139,10 @@ class Parameter(object):
             if issubclass(attr_type, Vector):
                 getattr(self, attr_name)[:,st:et+1] = getattr(param, attr_name)[:,st:et+1]
 
+    def set_to_time(self, ts):
+        if hasattr(self, 'openrave_body') and self.openrave_body is not None:
+            self.openrave_body.set_from_param(self, ts)
+
     def __repr__(self):
         return "%s - %s"%(self.name, self.get_type())
 
