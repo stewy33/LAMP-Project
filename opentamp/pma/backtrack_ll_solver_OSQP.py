@@ -32,6 +32,7 @@ OSQP_MAX_ITER = int(1e05)
 OSQP_SIGMA = 1e-5
 INIT_TRUST_REGION_SIZE = 1e-2
 INIT_PENALTY_COEFF = 1e0
+ADAPTIVE_RHO = True
 MAX_MERIT_INCR = 5
 RESAMPLE_ALL = False
 DEBUG = True
@@ -61,6 +62,7 @@ class BacktrackLLSolverOSQP(LLSolverOSQP):
                  osqp_eps_rel=OSQP_EPS_REL,
                  osqp_max_iter=OSQP_MAX_ITER,
                  osqp_sigma=OSQP_SIGMA,
+                 adaptive_rho=ADAPTIVE_RHO,
                  resample_all=RESAMPLE_ALL):
         # To avoid numerical difficulties during optimization, try to keep
         # range of coefficient within 1e9
@@ -90,6 +92,7 @@ class BacktrackLLSolverOSQP(LLSolverOSQP):
         self.osqp_eps_rel = osqp_eps_rel
         self.osqp_max_iter = osqp_max_iter
         self.osqp_sigma = osqp_sigma
+        self.adaptive_rho = adaptive_rho
         self.resample_all = resample_all
 
     def _solve_helper(self, plan, callback, active_ts, verbose):
@@ -521,7 +524,8 @@ class BacktrackLLSolverOSQP(LLSolverOSQP):
         # Call the solver on this problem now that it's been constructed
         success = solv.solve(self._prob, method="penalty_sqp", tol=tol, verbose=verbose,\
             osqp_eps_abs=self.osqp_eps_abs, osqp_eps_rel=self.osqp_eps_rel,\
-                osqp_max_iter=self.osqp_max_iter, sigma=self.osqp_sigma)
+                osqp_max_iter=self.osqp_max_iter, sigma=self.osqp_sigma,
+                adaptive_rho=self.adaptive_rho,)
 
         # Update the values of the variables by leveraging the ll_param mapping
         self._update_ll_params()
