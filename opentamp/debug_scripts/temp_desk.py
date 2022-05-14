@@ -81,8 +81,8 @@ if __name__ == '__main__':
     #const.EEREACHABLE_ROT_COEFF = 8e-3
     bt_ll.DEBUG = True
     openrave_bodies = None
-    domain_fname = opentamp.__path__[0] + "/domains/robot_manipulation_domain/right_desk.domain"
-    prob = opentamp.__path__[0] + "/domains/robot_manipulation_domain/probs/robodesk_prob.prob"
+    domain_fname = opentamp.__path__._path[0] + "/domains/robot_manipulation_domain/right_desk.domain"
+    prob = opentamp.__path__._path[0] + "/domains/robot_manipulation_domain/probs/robodesk_prob.prob"
     d_c = main.parse_file_to_dict(domain_fname)
     domain = parse_domain_config.ParseDomainConfig.parse(d_c)
     hls = FDSolver(d_c, cleanup_files=False)

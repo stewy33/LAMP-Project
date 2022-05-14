@@ -82,7 +82,7 @@ class HLState(object):
         return s
 
 class FFSolver(HLSolver):
-    FF_EXEC = opentamp.__path__[0]+"/task_planners/FF-v2.3/ff"
+    FF_EXEC = opentamp.__path__._path[0]+"/task_planners/FF-v2.3/ff"
     FILE_PREFIX = "temp_"
     PDDL_DIR = "opentamp/pddl_files/"
 
@@ -536,7 +536,7 @@ class FFSolver(HLSolver):
         return new_initial
 
 class FDSolver(FFSolver):
-    FD_EXEC = opentamp.__path__[0]+"/task_planners/downward/fast-downward.py"
+    FD_EXEC = opentamp.__path__._path[0]+"/task_planners/downward/fast-downward.py"
     FD_ARGS = ["--alias", "seq-sat-lama-2011"]
     FILE_PREFIX = "temp_"
     PDDL_DIR = "opentamp/pddl_files/"

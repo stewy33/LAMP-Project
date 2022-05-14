@@ -12,7 +12,7 @@ import opentamp.policy_hooks.robodesk.desk_prob as prob
 from opentamp.policy_hooks.robodesk.robot_agent import RobotAgent
 from opentamp.pma.robot_solver import RobotSolverOSQP
 
-BASE_DIR = opentamp.__path__[0] + '/policy_hooks/'
+BASE_DIR = opentamp.__path__._path[0] + '/policy_hooks/'
 EXP_DIR = BASE_DIR + 'experiments/'
 
 NUM_CONDS = 1 # Per rollout server

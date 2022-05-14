@@ -15,8 +15,8 @@ from opentamp.policy_hooks.utils.policy_solver_utils import *
 import opentamp.policy_hooks.utils.policy_solver_utils as utils
 
 
-domain_file = opentamp.__path__[0] + "/domains/robot_manipulation_domain/right_desk.domain"
-mapping_file =  opentamp.__path__[0] + "/policy_hooks/robodesk/robot_task_mapping"
+domain_file = opentamp.__path__._path[0] + "/domains/robot_manipulation_domain/right_desk.domain"
+mapping_file =  opentamp.__path__._path[0] + "/policy_hooks/robodesk/robot_task_mapping"
 
 GOAL_OPTIONS = [
                 '(SlideDoorClose shelf_handle shelf)',
@@ -32,7 +32,7 @@ GOAL_OPTIONS = [
 INVARIANT_GOALS = []
 
 def prob_file(descr=None):
-    return opentamp.__path__[0] + "/domains/robot_manipulation_domain/probs/robodesk_prob.prob"
+    return opentamp.__path__._path[0] + "/domains/robot_manipulation_domain/probs/robodesk_prob.prob"
 
 
 def get_prim_choices(task_list=None):

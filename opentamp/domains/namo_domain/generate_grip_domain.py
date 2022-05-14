@@ -191,8 +191,8 @@ dom_str = dom_str.replace('    ', '')
 dom_str = dom_str.replace('    ', '')
 
 print(dom_str)
-with open(opentamp.__path__[0]+'/domains/namo_domain/namo_current_holgrip.domain', 'w+') as f:
+with open(opentamp.__path__._path[0]+'/domains/namo_domain/namo_current_holgrip.domain', 'w+') as f:
     f.write(dom_str)
 
-with open(opentamp.__path__[0]+'/domains/namo_domain/namo_current_rip.domain', 'w+') as f:
+with open(opentamp.__path__._path[0]+'/domains/namo_domain/namo_current_rip.domain', 'w+') as f:
     f.write(dom_str)

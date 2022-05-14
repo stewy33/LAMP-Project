@@ -21,9 +21,9 @@ from opentamp.envs import transform_utils as T
 
 
 
-BASE_XML = opentamp.__path__[0] +'/robot_info/empty.xml'
-ENV_XML = opentamp.__path__[0] + '/robot_info/current_empty.xml'
-SPECIFIC_ENV_XML = opentamp.__path__[0] + '/robot_info/temp_env_xmls/current_{0}.xml'
+BASE_XML = opentamp.__path__._path[0] +'/robot_info/empty.xml'
+ENV_XML = opentamp.__path__._path[0] + '/robot_info/current_empty.xml'
+SPECIFIC_ENV_XML = opentamp.__path__._path[0] + '/robot_info/temp_env_xmls/current_{0}.xml'
 
 _MAX_FRONTBUFFER_SIZE = 2048
 _CAM_WIDTH = 200

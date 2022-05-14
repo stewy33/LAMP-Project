@@ -102,7 +102,7 @@ def main():
 
                 s += "Goal: %s"%GOAL
 
-                with open(opentamp.__path__[0]+filename, "w") as f:
+                with open(opentamp.__path__._path[0]+filename, "w") as f:
                     f.write(s)
 
 if __name__ == "__main__":

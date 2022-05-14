@@ -205,7 +205,7 @@ class Door(XMLItem):
         self.handle_orn = [0., 0., 0.]
         self.in_orn = [0., 0., 0.]
         if door_type.lower() == 'desk_drawer':
-            shape = opentamp.__path__[0] + '/robot_info/robodesk/desk_drawer.xml'
+            shape = opentamp.__path__._path[0] + '/robot_info/robodesk/desk_drawer.xml'
             #self.handle_pos = [0., -0.36, 0.01]
             self.handle_pos = const.DRAWER_HANDLE_POS
             self.handle_orn = const.DRAWER_HANDLE_ORN
@@ -225,7 +225,7 @@ class Door(XMLItem):
             self.width = 0.1
             col_links = set([-1, 0, 1])
         elif door_type.lower() == 'desk_shelf':
-            shape = opentamp.__path__[0] + '/robot_info/robodesk/desk_shelf.xml'
+            shape = opentamp.__path__._path[0] + '/robot_info/robodesk/desk_shelf.xml'
             self.hinge_type = 'prismatic'
             self.handle_pos = const.SHELF_HANDLE_POS 
             self.in_pos = const.IN_SHELF_POS

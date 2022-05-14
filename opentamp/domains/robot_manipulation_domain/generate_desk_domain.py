@@ -1500,7 +1500,7 @@ right_dom_str = right_dom_str.replace('            ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 print(right_dom_str)
-f = open(opentamp.__path__[0]+'/domains/robot_manipulation_domain/right_robot.domain', 'w')
+f = open(opentamp.__path__._path[0]+'/domains/robot_manipulation_domain/right_robot.domain', 'w')
 f.write(right_dom_str)
 
 
@@ -1519,6 +1519,6 @@ right_dom_str = right_dom_str.replace('            ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 right_dom_str = right_dom_str.replace('    ', '')
 print(right_dom_str)
-f = open(opentamp.__path__[0]+'/domains/robot_manipulation_domain/right_desk.domain', 'w')
+f = open(opentamp.__path__._path[0]+'/domains/robot_manipulation_domain/right_desk.domain', 'w')
 f.write(right_dom_str)
 
