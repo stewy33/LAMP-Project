@@ -1,5 +1,3 @@
-import sys
-sys.path.insert(0, '../../src/')
 import opentamp.core.util_classes.common_constants as const
 from opentamp.core.util_classes.robots import *
 
