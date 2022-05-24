@@ -31,7 +31,7 @@ class OpenRAVEBody(object):
         elif isinstance(geom, Item):
             self._add_item(geom)
         else:
-            raise ValueError("Geometry not supported for %s for OpenRAVEBody"%geom)
+            raise ValueError(f"Geometry not supported for {geom} for OpenRAVEBody")
 
         # self.set_transparency(0.5)
 
