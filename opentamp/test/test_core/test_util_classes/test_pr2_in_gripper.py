@@ -1,14 +1,14 @@
 import unittest
-from core.internal_repr import parameter
-from core.util_classes import pr2_predicates, viewer, matrix
-from core.util_classes.items import BlueCan, RedCan
-from core.util_classes.robots import PR2
-from core.util_classes.viewer import OpenRAVEViewer
+from opentamp.core.internal_repr import parameter
+from opentamp.core.util_classes import pr2_predicates, viewer, matrix
+from opentamp.core.util_classes.items import BlueCan, RedCan
+from opentamp.core.util_classes.robots import PR2
+from opentamp.core.util_classes.viewer import OpenRAVEViewer
 from pma.can_solver import CanSolver
 import time
 from openravepy import Environment
-from core.internal_repr.action import Action
-from core.internal_repr.plan import Plan
+from opentamp.core.internal_repr.action import Action
+from opentamp.core.internal_repr.plan import Plan
 import numpy as np
 
 class TestPR2InGripper(unittest.TestCase):

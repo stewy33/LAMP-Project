@@ -2,8 +2,8 @@ import os
 import sys
 
 import main
-from core.parsing import parse_domain_config, parse_problem_config
-from core.util_classes.viewer import PyBulletViewer
+from opentamp.core.parsing import parse_domain_config, parse_problem_config
+from opentamp.core.util_classes.viewer import PyBulletViewer
 from pma.hl_solver import *
 from pma.pr_graph import *
 import argparse

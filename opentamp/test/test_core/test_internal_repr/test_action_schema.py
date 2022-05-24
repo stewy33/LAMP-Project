@@ -1,5 +1,5 @@
 import unittest
-from core.internal_repr import action_schema
+from opentamp.core.internal_repr import action_schema
 
 class TestActionSchema(unittest.TestCase):
     def test(self):

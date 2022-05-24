@@ -1,5 +1,5 @@
 import unittest
-from core.util_classes import matrix
+from opentamp.core.util_classes import matrix
 import numpy as np
 
 class TestMatrix(unittest.TestCase):

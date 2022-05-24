@@ -1,6 +1,6 @@
-from core.util_classes.common_predicates import ExprPredicate
-from core.util_classes.openrave_body import OpenRAVEBody
-import core.util_classes.baxter_constants as const
+from opentamp.core.util_classes.common_predicates import ExprPredicate
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
+import opentamp.core.util_classes.baxter_constants as const
 from opentamp.policy_hooks.sample import Sample
 from opentamp.policy_hooks.utils.policy_solver_utils import *
 from sco_py.expr import Expr, AffExpr, EqExpr, LEqExpr

@@ -1,6 +1,6 @@
 import numpy as np
 
-from core.util_classes.namo_predicates import ColObjPred
+from opentamp.core.util_classes.namo_predicates import ColObjPred
 from pma import backtrack_ll_solver_gurobi
 from sco_py.expr import BoundExpr
 

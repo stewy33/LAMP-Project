@@ -2,12 +2,12 @@ import unittest
 import numpy as np
 from pma import can_solver
 from openravepy import Environment, matrixFromAxisAngle
-from core.util_classes.viewer import OpenRAVEViewer
-from core.util_classes.openrave_body import OpenRAVEBody
-from core.util_classes.robots import PR2
-from core.util_classes import items, pr2_sampling, matrix, param_setup
-from core.util_classes.param_setup import ParamSetup
-from core.internal_repr import parameter
+from opentamp.core.util_classes.viewer import OpenRAVEViewer
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.core.util_classes.robots import PR2
+from opentamp.core.util_classes import items, pr2_sampling, matrix, param_setup
+from opentamp.core.util_classes.param_setup import ParamSetup
+from opentamp.core.internal_repr import parameter
 import time
 
 class TestSampling(unittest.TestCase):

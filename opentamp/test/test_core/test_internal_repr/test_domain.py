@@ -1,8 +1,8 @@
 import unittest
-from core.internal_repr import domain
-from core.internal_repr.parameter_schema import ParameterSchema
-from core.internal_repr.predicate_schema import PredicateSchema
-from core.internal_repr.action_schema import ActionSchema
+from opentamp.core.internal_repr import domain
+from opentamp.core.internal_repr.parameter_schema import ParameterSchema
+from opentamp.core.internal_repr.predicate_schema import PredicateSchema
+from opentamp.core.internal_repr.action_schema import ActionSchema
 
 class TestDomain(unittest.TestCase):
     def test(self):

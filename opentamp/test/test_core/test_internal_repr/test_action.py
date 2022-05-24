@@ -1,9 +1,9 @@
 import unittest
-from core.internal_repr import action
-from core.util_classes import namo_predicates_gurobi
-from core.util_classes import circle
-from core.util_classes.matrix import Vector2d
-from core.internal_repr import parameter
+from opentamp.core.internal_repr import action
+from opentamp.core.util_classes import namo_predicates_gurobi
+from opentamp.core.util_classes import circle
+from opentamp.core.util_classes.matrix import Vector2d
+from opentamp.core.internal_repr import parameter
 import numpy as np
 
 

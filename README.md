@@ -115,13 +115,13 @@ The next portion specifies where to find various necessary code
 
 First:
 
-`Attribute Import Paths: RedCircle core.util_classes.items, Vector1d core.util_classes.matrix, Vector2d core.util_classes.matrix, Wall core.util_classes.items, NAMO core.util_classes.robots`
+`Attribute Import Paths: RedCircle opentamp.core.util_classes.items, Vector1d opentamp.core.util_classes.matrix, Vector2d opentamp.core.util_classes.matrix, Wall opentamp.core.util_classes.items, NAMO opentamp.core.util_classes.robots`
 
 Here, we tell the planner where to find the python classes parameter attributes can take on (used in Primitive Predicates)
 
 Second:
 
-`Predicates Import Path: core.util_classes.namo_predicates`
+`Predicates Import Path: opentamp.core.util_classes.namo_predicates`
 
 Here, we tell the planner where to find the python classes defining predicates
 

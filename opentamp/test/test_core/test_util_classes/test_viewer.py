@@ -1,11 +1,11 @@
 import unittest
-from core.util_classes import viewer
-from core.util_classes import circle
-from core.util_classes import matrix
-from core.internal_repr import parameter
-from core.util_classes.robots import PR2
-from core.util_classes.items import Box, Can, BlueCan, Table
-from core.util_classes.plan_hdf5_serialization import PlanDeserializer, PlanSerializer
+from opentamp.core.util_classes import viewer
+from opentamp.core.util_classes import circle
+from opentamp.core.util_classes import matrix
+from opentamp.core.internal_repr import parameter
+from opentamp.core.util_classes.robots import PR2
+from opentamp.core.util_classes.items import Box, Can, BlueCan, Table
+from opentamp.core.util_classes.plan_hdf5_serialization import PlanDeserializer, PlanSerializer
 import numpy as np
 import time
 

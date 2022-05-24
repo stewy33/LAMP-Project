@@ -7,9 +7,9 @@ Types: Can, Target, RobotPose, Robot, Grasp, Obstacle, Rotation
 
 # Define the class location of each non-standard attribute type used in the above parameter type descriptions.
 
-Attribute Import Paths: RedCircle core.util_classes.items, BlueCircle core.util_classes.items, GreenCircle core.util_classes.items, Vector1d core.util_classes.matrix, Vector2d core.util_classes.matrix, Wall core.util_classes.items, TwoLinkArm core.util_classes.robots
+Attribute Import Paths: RedCircle opentamp.core.util_classes.items, BlueCircle opentamp.core.util_classes.items, GreenCircle opentamp.core.util_classes.items, Vector1d opentamp.core.util_classes.matrix, Vector2d opentamp.core.util_classes.matrix, Wall opentamp.core.util_classes.items, TwoLinkArm opentamp.core.util_classes.robots
 
-Predicates Import Path: core.util_classes.namo_arm_predicates
+Predicates Import Path: opentamp.core.util_classes.namo_arm_predicates
 
 Primitive Predicates: geom, Can, RedCircle; pose, Can, Vector2d; geom, Target, BlueCircle; value, Target, Vector2d; pose, Robot, Vector2d; value, RobotPose, Vector2d; gripper, RobotPose, Vector1d; geom, RobotPose, BlueCircle; geom, Robot, TwoLinkArm; joint1, Robot, Vector1d; joint2, Robot, Vector1d; wrist, Robot, Vector1d; joint1, RobotPose, Vector1d; joint2, RobotPose, Vector1d; wrist, RobotPose, Vector1d; gripper, Robot, Vector1d; value, Grasp, Vector2d; geom, Obstacle, Wall; pose, Obstacle, Vector2d; value, Rotation, Vector1d
 

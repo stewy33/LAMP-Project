@@ -102,7 +102,6 @@ class ExprPredicate(Predicate):
         if param.openrave_body is not None:
             assert geom == param.openrave_body._geom
         else:
-            import ipdb; ipdb.set_trace()
             param.openrave_body = OpenRAVEBody(self._env, name, geom)
         return param.openrave_body
 

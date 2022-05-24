@@ -1,5 +1,5 @@
 import unittest
-from core.util_classes.param_setup import ParamSetup
+from opentamp.core.util_classes.param_setup import ParamSetup
 import numpy as np
 class TestParamSetup(unittest.TestCase):
 

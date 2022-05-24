@@ -1,8 +1,8 @@
-from core.internal_repr.predicate import Predicate
-from core.internal_repr.plan import Plan
-from core.util_classes.common_predicates import ExprPredicate
-from core.util_classes.namo_predicates import NEAR_TOL
-from core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.core.internal_repr.predicate import Predicate
+from opentamp.core.internal_repr.plan import Plan
+from opentamp.core.util_classes.common_predicates import ExprPredicate
+from opentamp.core.util_classes.namo_predicates import NEAR_TOL
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
 from errors_exceptions import PredicateException
 from sco_py.expr import Expr, AffExpr, EqExpr, LEqExpr
 import numpy as np

@@ -4,7 +4,7 @@ import time
 import main
 import numpy as np
 from ros_interface import action_execution, environment_monitor
-from core.util_classes.plan_hdf5_serialization import PlanDeserializer
+from opentamp.core.util_classes.plan_hdf5_serialization import PlanDeserializer
 from pma.robot_ll_solver import RobotLLSolver
 
 

@@ -7,13 +7,13 @@ dom_str = """
 # implicity, all types require a name
 Types: Robot, RobotPose, CollisionShape 
 # Define the class location of each non-standard attribute type used in the above parameter type descriptions.
-Attribute Import Paths: Vector1d core.util_classes.matrix, Vector2d core.util_classes.matrix, Vector3d core.util_classes.matrix, ArmPose7d core.util_classes.matrix, Table core.util_classes.items, Box core.util_classes.items, Basket core.util_classes.items, Cloth core.util_classes.items, Can core.util_classes.items"""
+Attribute Import Paths: Vector1d opentamp.core.util_classes.matrix, Vector2d opentamp.core.util_classes.matrix, Vector3d opentamp.core.util_classes.matrix, ArmPose7d opentamp.core.util_classes.matrix, Table opentamp.core.util_classes.items, Box opentamp.core.util_classes.items, Basket opentamp.core.util_classes.items, Cloth opentamp.core.util_classes.items, Can opentamp.core.util_classes.items"""
 robots = ['Baxter', 'Sawyer']
 for robot in robots:
-    dom_str += ", {} core.util_classes.robots".format(robot)
+    dom_str += ", {} opentamp.core.util_classes.robots".format(robot)
 
 dom_str += """
-Predicates Import Path: core.util_classes.robot_predicates
+Predicates Import Path: opentamp.core.util_classes.robot_predicates
 """
 
 # Automated handling to setup robot types

@@ -2,13 +2,13 @@ import unittest
 import time
 import main
 import numpy as np
-from core.util_classes import robots
-from core.parsing import parse_domain_config, parse_problem_config
-from core.util_classes.baxter_predicates import BaxterCollides
-from core.util_classes.param_setup import ParamSetup
-from core.util_classes.openrave_body import OpenRAVEBody
-from core.util_classes.baxter_sampling import process_traj
-from core.util_classes.viewer import OpenRAVEViewer
+from opentamp.core.util_classes import robots
+from opentamp.core.parsing import parse_domain_config, parse_problem_config
+from opentamp.core.util_classes.baxter_predicates import BaxterCollides
+from opentamp.core.util_classes.param_setup import ParamSetup
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.core.util_classes.baxter_sampling import process_traj
+from opentamp.core.util_classes.viewer import OpenRAVEViewer
 from openravepy import Environment, Planner, RaveCreatePlanner, RaveCreateTrajectory, ikfast, IkParameterizationType, IkParameterization, IkFilterOptions, databases, matrixFromAxisAngle
 
 

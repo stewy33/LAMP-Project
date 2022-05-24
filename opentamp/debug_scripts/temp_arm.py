@@ -1,5 +1,5 @@
-from core.util_classes.robots import TwoLinkArm
-from core.util_classes.openrave_body import *
+from opentamp.core.util_classes.robots import TwoLinkArm
+from opentamp.core.util_classes.openrave_body import *
 
 import pybullet as P
 

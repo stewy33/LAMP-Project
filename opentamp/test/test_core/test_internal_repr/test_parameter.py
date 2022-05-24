@@ -1,8 +1,8 @@
 import unittest
 from IPython import embed as shell
-from core.internal_repr import parameter
-from core.util_classes import circle
-from core.util_classes import matrix
+from opentamp.core.internal_repr import parameter
+from opentamp.core.util_classes import circle
+from opentamp.core.util_classes import matrix
 from errors_exceptions import DomainConfigException
 import numpy as np
 

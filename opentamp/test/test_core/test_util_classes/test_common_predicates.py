@@ -1,9 +1,9 @@
 import unittest
-from core.internal_repr import parameter
-from core.util_classes.matrix import Vector2d
-from core.util_classes import common_predicates
-from core.util_classes.openrave_body import OpenRAVEBody
-from core.util_classes import items
+from opentamp.core.internal_repr import parameter
+from opentamp.core.util_classes.matrix import Vector2d
+from opentamp.core.util_classes import common_predicates
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.core.util_classes import items
 from errors_exceptions import PredicateException
 from sco_py import expr
 import numpy as np

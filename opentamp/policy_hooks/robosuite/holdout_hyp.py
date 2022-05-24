@@ -15,7 +15,7 @@ from opentamp.policy_hooks.algorithm_impgps import AlgorithmIMPGPS
 from opentamp.policy_hooks.multi_head_policy_opt_tf import MultiHeadPolicyOptTf
 import policy_hooks.utils.policy_solver_utils as utils
 from opentamp.policy_hooks.traj_opt_pi2 import TrajOptPI2
-from core.util_classes.namo_grip_predicates import ATTRMAP
+from opentamp.core.util_classes.namo_grip_predicates import ATTRMAP
 import policy_hooks.robosuite.pick_prob as prob
 prob.NUM_OBJS = NUM_OBJS
 prob.NUM_TARGS = NUM_TARGS

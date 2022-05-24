@@ -14,7 +14,7 @@ import xml.etree.ElementTree as xml
 
 from sco_py.expr import *
 
-import core.util_classes.common_constants as const
+import opentamp.core.util_classes.common_constants as const
 if const.USE_OPENRAVE:
     # import openravepy
     # from openravepy import RaveCreatePhysicsEngine
@@ -28,10 +28,10 @@ from opentamp.policy_hooks.sample_list import SampleList
 
 from opentamp.envs import MJCEnv
 
-import core.util_classes.items as items
-from core.util_classes.namo_predicates import dsafe, NEAR_TOL, dmove, HLGraspFailed, HLTransferFailed
-from core.util_classes.openrave_body import OpenRAVEBody
-from core.util_classes.viewer import OpenRAVEViewer
+import opentamp.core.util_classes.items as items
+from opentamp.core.util_classes.namo_predicates import dsafe, NEAR_TOL, dmove, HLGraspFailed, HLTransferFailed
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.core.util_classes.viewer import OpenRAVEViewer
 
 from opentamp.policy_hooks.agent import Agent
 from opentamp.policy_hooks.sample import Sample

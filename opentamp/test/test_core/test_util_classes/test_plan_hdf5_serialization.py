@@ -1,11 +1,11 @@
 import unittest
-from core.internal_repr import plan
-from core.internal_repr import parameter
-from core.internal_repr import action
-from core.util_classes import namo_predicates_gurobi
-from core.util_classes import circle
-from core.util_classes.matrix import Vector2d
-from core.util_classes import plan_hdf5_serialization
+from opentamp.core.internal_repr import plan
+from opentamp.core.internal_repr import parameter
+from opentamp.core.internal_repr import action
+from opentamp.core.util_classes import namo_predicates_gurobi
+from opentamp.core.util_classes import circle
+from opentamp.core.util_classes.matrix import Vector2d
+from opentamp.core.util_classes import plan_hdf5_serialization
 from errors_exceptions import PredicateException
 import numpy as np
 

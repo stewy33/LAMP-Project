@@ -1,5 +1,5 @@
 import unittest
-from core.parsing import parse_solvers_config
+from opentamp.core.parsing import parse_solvers_config
 from errors_exceptions import SolversConfigException, HLException, LLException
 
 class TestParseSolversConfig(unittest.TestCase):

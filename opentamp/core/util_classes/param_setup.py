@@ -1,6 +1,6 @@
 from openravepy import Environment
-from core.util_classes import matrix, robots, items
-from core.internal_repr import parameter
+from opentamp.core.util_classes import matrix, robots, items
+from opentamp.core.internal_repr import parameter
 import numpy as np
 
 class ParamSetup(object):

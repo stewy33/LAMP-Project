@@ -1,5 +1,5 @@
-from core.internal_repr import state
-from core.internal_repr import problem
+from opentamp.core.internal_repr import state
+from opentamp.core.internal_repr import problem
 from errors_exceptions import ProblemConfigException
 
 from driving_sim.internal_state.simulator_state import SimulatorState

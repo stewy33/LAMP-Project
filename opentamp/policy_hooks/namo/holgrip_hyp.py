@@ -15,7 +15,7 @@ from opentamp.policy_hooks.algorithm_impgps import AlgorithmIMPGPS
 from opentamp.policy_hooks.multi_head_policy_opt_tf import MultiHeadPolicyOptTf
 import policy_hooks.utils.policy_solver_utils as utils
 from opentamp.policy_hooks.traj_opt_pi2 import TrajOptPI2
-from core.util_classes.namo_grip_predicates import ATTRMAP
+from opentamp.core.util_classes.namo_grip_predicates import ATTRMAP
 from pma.namo_grip_solver import NAMOSolver
 from opentamp.policy_hooks.namo.grip_agent import NAMOGripAgent
 from opentamp.policy_hooks.namo.namo_grip_policy_solver import NAMOGripPolicySolver

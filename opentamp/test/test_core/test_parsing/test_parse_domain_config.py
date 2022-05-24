@@ -1,5 +1,5 @@
 import unittest
-from core.parsing import parse_domain_config
+from opentamp.core.parsing import parse_domain_config
 from errors_exceptions import DomainConfigException, PredicateException
 import main
 
@@ -24,7 +24,7 @@ class TestParseDomainConfig(unittest.TestCase):
 
     def test_param_schemas_failure(self):
         new_c = self.c.copy()
-        new_c["Attribute Import Paths"] = "RedCircle core.util_classes.circle"
+        new_c["Attribute Import Paths"] = "RedCircle opentamp.core.util_classes.circle"
         with self.assertRaises(DomainConfigException) as cm:
             parse_domain_config.ParseDomainConfig.parse(new_c)
         self.assertEqual(cm.exception.message, "Need to provide attribute import path for non-primitive Vector2d.")
@@ -34,7 +34,7 @@ class TestParseDomainConfig(unittest.TestCase):
             parse_domain_config.ParseDomainConfig.parse(new_c)
         self.assertTrue(cm.exception.message.startswith("Need to provide attribute import path for"))
 
-        new_c["Attribute Import Paths"] = "RedCircle core.internal_repr, BlueCircle core.util_classes.circle, GreenCircle core.util_classes.circle, Vector2d core.util_classes.matrix, GridWorldViewer core.util_classes.viewer"
+        new_c["Attribute Import Paths"] = "RedCircle opentamp.core.internal_repr, BlueCircle opentamp.core.util_classes.circle, GreenCircle opentamp.core.util_classes.circle, Vector2d opentamp.core.util_classes.matrix, GridWorldViewer opentamp.core.util_classes.viewer"
         with self.assertRaises(DomainConfigException) as cm:
             parse_domain_config.ParseDomainConfig.parse(new_c)
         self.assertTrue(cm.exception.message.startswith("RedCircle not found in module"))

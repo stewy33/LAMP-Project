@@ -1,8 +1,8 @@
 import unittest
-from core.internal_repr import parameter
-from core.util_classes import robot_predicates, matrix
+from opentamp.core.internal_repr import parameter
+from opentamp.core.util_classes import robot_predicates, matrix
 from errors_exceptions import PredicateException, ParamValidationException
-from core.util_classes.param_setup import ParamSetup
+from opentamp.core.util_classes.param_setup import ParamSetup
 import numpy as np
 
 class TestRobotPredicates(unittest.TestCase):

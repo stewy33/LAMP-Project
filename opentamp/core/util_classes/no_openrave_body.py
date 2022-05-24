@@ -5,9 +5,9 @@ from openravepy import quatFromAxisAngle, matrixFromPose, poseFromMatrix, \
 axisAngleFromRotationMatrix, KinBody, GeometryType, RaveCreateRobot, \
 RaveCreateKinBody, TriMesh, Environment, DOFAffine, IkParameterization, IkParameterizationType, \
 IkFilterOptions, matrixFromAxisAngle, quatFromRotationMatrix
-from core.util_classes.robots import Robot, PR2, Baxter, Washer
+from opentamp.core.util_classes.robots import Robot, PR2, Baxter, Washer
 
-from core.util_classes.items import Item, Box, Can, BlueCan, RedCan, Circle, BlueCircle, RedCircle, GreenCircle, Obstacle, Wall, Table, Basket
+from opentamp.core.util_classes.items import Item, Box, Can, BlueCan, RedCan, Circle, BlueCircle, RedCircle, GreenCircle, Obstacle, Wall, Table, Basket
 
 WALL_THICKNESS = 1
 

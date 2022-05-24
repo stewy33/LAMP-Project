@@ -17,17 +17,17 @@ import xml.etree.ElementTree as xml
 
 from sco_py.expr import *
 
-import core.util_classes.common_constants as const
+import opentamp.core.util_classes.common_constants as const
 import pybullet as P
 
 
 from opentamp.policy_hooks.sample_list import SampleList
 
-import core.util_classes.items as items
-from core.util_classes.namo_predicates import dsafe, NEAR_TOL, dmove, HLGraspFailed, HLTransferFailed
-from core.util_classes.openrave_body import OpenRAVEBody
-from core.util_classes.viewer import OpenRAVEViewer
-import core.util_classes.transform_utils as T
+import opentamp.core.util_classes.items as items
+from opentamp.core.util_classes.namo_predicates import dsafe, NEAR_TOL, dmove, HLGraspFailed, HLTransferFailed
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.core.util_classes.viewer import OpenRAVEViewer
+import opentamp.core.util_classes.transform_utils as T
 
 import pma.backtrack_ll_solver as bt_ll
 from pma.robosuite_solver import REF_JNTS

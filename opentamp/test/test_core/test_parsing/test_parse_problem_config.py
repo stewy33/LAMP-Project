@@ -1,7 +1,7 @@
 import unittest
-from core.parsing import parse_domain_config
-from core.parsing import parse_problem_config
-from core.util_classes import matrix
+from opentamp.core.parsing import parse_domain_config
+from opentamp.core.parsing import parse_problem_config
+from opentamp.core.util_classes import matrix
 from errors_exceptions import ProblemConfigException, ParamValidationException
 import main
 

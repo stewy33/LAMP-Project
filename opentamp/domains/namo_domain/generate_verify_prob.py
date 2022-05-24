@@ -1,6 +1,6 @@
 import itertools
 import random
-from core.util_classes.namo_predicates import dsafe
+from opentamp.core.util_classes.namo_predicates import dsafe
 
 GOAL = "(RobotAt pr2 robot_end_pose)"
 HEIGHT = 5

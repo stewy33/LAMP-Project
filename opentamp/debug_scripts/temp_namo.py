@@ -16,7 +16,7 @@ from pma.hl_solver import *
 from pma.pr_graph import *
 from pma import backtrack_ll_solver_gurobi as bt_ll
 from opentamp.policy_hooks.utils.load_task_definitions import parse_state
-from core.util_classes.namo_grip_predicates import angle_diff
+from opentamp.core.util_classes.namo_grip_predicates import angle_diff
 import pybullet as P
 
 plans = prob.get_plans(use_tf=True)

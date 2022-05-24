@@ -5,7 +5,7 @@ import os
 import random
 from opentamp.envs import MJCEnv
 
-from core.parsing import parse_domain_config, parse_problem_config
+from opentamp.core.parsing import parse_domain_config, parse_problem_config
 import main
 import policy_hooks.namo.sorting_prob_11 as prob_gen
 from pma.namo_grip_solver import NAMOSolverOSQP, NAMOSolverGurobi
@@ -13,7 +13,7 @@ from pma.hl_solver import *
 from pma.pr_graph import *
 from pma import backtrack_ll_solver_OSQP as bt_ll_osqp
 from pma import backtrack_ll_solver_gurobi as bt_ll_gurobi
-from core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
 from opentamp.policy_hooks.utils.policy_solver_utils import *
 import opentamp
 

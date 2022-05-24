@@ -11,7 +11,7 @@ from sco_py.variable import Variable
 
 from gps.algorithm.cost.cost_utils import *
 
-from core.util_classes.namo_predicates import ATTRMAP
+from opentamp.core.util_classes.namo_predicates import ATTRMAP
 from pma.namo_grip_solver import NAMOSolver
 # from opentamp.policy_hooks.namo.multi_task_main import GPSMain
 from opentamp.policy_hooks.namo.vector_include import *

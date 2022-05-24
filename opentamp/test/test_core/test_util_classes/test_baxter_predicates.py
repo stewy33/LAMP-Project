@@ -1,13 +1,13 @@
 import unittest
-from core.util_classes import robot_predicates, baxter_predicates, matrix
+from opentamp.core.util_classes import robot_predicates, baxter_predicates, matrix
 from errors_exceptions import PredicateException, ParamValidationException
-from core.util_classes.param_setup import ParamSetup
-from core.util_classes.openrave_body import OpenRAVEBody
-import core.util_classes.baxter_constants as const
-from core.parsing import parse_domain_config, parse_problem_config
-from core.util_classes.viewer import OpenRAVEViewer
+from opentamp.core.util_classes.param_setup import ParamSetup
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
+import opentamp.core.util_classes.baxter_constants as const
+from opentamp.core.parsing import parse_domain_config, parse_problem_config
+from opentamp.core.util_classes.viewer import OpenRAVEViewer
 from openravepy import matrixFromAxisAngle
-from core.util_classes.plan_hdf5_serialization import PlanDeserializer, PlanSerializer
+from opentamp.core.util_classes.plan_hdf5_serialization import PlanDeserializer, PlanSerializer
 import numpy as np
 import main
 

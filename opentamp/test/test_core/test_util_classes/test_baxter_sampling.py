@@ -3,16 +3,16 @@ import time
 import main
 import numpy as np
 from pma import hl_solver
-from core.parsing import parse_domain_config, parse_problem_config
-from core.internal_repr import parameter
-from core.util_classes import  matrix, baxter_predicates, baxter_sampling
-from core.util_classes.param_setup import ParamSetup
-from core.util_classes.robots import Baxter
-from core.util_classes.openrave_body import OpenRAVEBody
-from core.util_classes.viewer import OpenRAVEViewer
+from opentamp.core.parsing import parse_domain_config, parse_problem_config
+from opentamp.core.internal_repr import parameter
+from opentamp.core.util_classes import  matrix, baxter_predicates, baxter_sampling
+from opentamp.core.util_classes.param_setup import ParamSetup
+from opentamp.core.util_classes.robots import Baxter
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.core.util_classes.viewer import OpenRAVEViewer
 from openravepy import Environment, Planner, RaveCreatePlanner, RaveCreateTrajectory, ikfast, IkParameterizationType, IkParameterization, IkFilterOptions, databases, matrixFromAxisAngle
-import core.util_classes.baxter_constants as const
-from core.util_classes.plan_hdf5_serialization import PlanSerializer, PlanDeserializer
+import opentamp.core.util_classes.baxter_constants as const
+from opentamp.core.util_classes.plan_hdf5_serialization import PlanSerializer, PlanDeserializer
 
 def load_environment(domain_file, problem_file):
     domain_fname = domain_file

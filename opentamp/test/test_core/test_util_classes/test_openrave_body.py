@@ -1,14 +1,14 @@
 import numpy as np
 import unittest
 from openravepy import Environment, KinBody,RaveCreateKinBody
-from core.internal_repr import parameter
-from core.util_classes.robots import PR2
-from core.util_classes.items import BlueCan, RedCan, Obstacle, GreenCircle, BlueCircle
-from core.util_classes.matrix import Vector2d, Vector3d, Vector7d, Value
-from core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.core.internal_repr import parameter
+from opentamp.core.util_classes.robots import PR2
+from opentamp.core.util_classes.items import BlueCan, RedCan, Obstacle, GreenCircle, BlueCircle
+from opentamp.core.util_classes.matrix import Vector2d, Vector3d, Vector7d, Value
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
 from errors_exceptions import OpenRAVEException
-from core.util_classes import viewer
-from core.parsing import parse_domain_config, parse_problem_config
+from opentamp.core.util_classes import viewer
+from opentamp.core.parsing import parse_domain_config, parse_problem_config
 import main
 import time
 
@@ -214,7 +214,7 @@ class TestOpenRAVEBody(unittest.TestCase):
         # import ipdb; ipdb.set_trace()
 
     def test_washer(self):
-        from core.util_classes.param_setup import ParamSetup
+        from opentamp.core.util_classes.param_setup import ParamSetup
         washer = ParamSetup.setup_washer()
         env = ParamSetup.setup_env()
         washer_body = OpenRAVEBody(env, washer.name, washer.geom)

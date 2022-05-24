@@ -1,4 +1,4 @@
-from core.util_classes import items
+from opentamp.core.util_classes import items
 import unittest
 class TestItems(unittest.TestCase):
     def test_box(self):

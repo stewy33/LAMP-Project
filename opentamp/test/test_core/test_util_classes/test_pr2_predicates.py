@@ -1,10 +1,10 @@
 import unittest
-from core.internal_repr import parameter
-from core.util_classes import robot_predicates, pr2_predicates, matrix
-from core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.core.internal_repr import parameter
+from opentamp.core.util_classes import robot_predicates, pr2_predicates, matrix
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
 from errors_exceptions import PredicateException, ParamValidationException
-from core.util_classes.param_setup import ParamSetup
-import core.util_classes.pr2_constants as const
+from opentamp.core.util_classes.param_setup import ParamSetup
+import opentamp.core.util_classes.pr2_constants as const
 import numpy as np
 
 class TestPR2Predicates(unittest.TestCase):

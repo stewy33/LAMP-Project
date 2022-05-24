@@ -1,11 +1,11 @@
 import unittest
-from core.internal_repr import problem
-from core.internal_repr import parameter
-from core.util_classes import common_predicates, namo_predicates
-from core.util_classes.matrix import Vector2d
-from core.internal_repr import state
+from opentamp.core.internal_repr import problem
+from opentamp.core.internal_repr import parameter
+from opentamp.core.util_classes import common_predicates, namo_predicates
+from opentamp.core.util_classes.matrix import Vector2d
+from opentamp.core.internal_repr import state
 from errors_exceptions import ProblemConfigException
-from core.util_classes import items
+from opentamp.core.util_classes import items
 from openravepy import Environment
 import numpy as np
 

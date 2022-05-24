@@ -1,5 +1,5 @@
 import unittest
-from core.internal_repr import predicate_schema
+from opentamp.core.internal_repr import predicate_schema
 
 class TestPredicateSchema(unittest.TestCase):
     def test(self):

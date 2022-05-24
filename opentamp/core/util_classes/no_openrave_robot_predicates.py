@@ -1,8 +1,8 @@
-from core.util_classes.common_predicates import ExprPredicate
-from core.util_classes.openrave_body import OpenRAVEBody
-from core.util_classes.pr2_sampling import get_expr_mult
-from core.util_classes.param_setup import ParamSetup
-import core.util_classes.common_constants as const
+from opentamp.core.util_classes.common_predicates import ExprPredicate
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.core.util_classes.pr2_sampling import get_expr_mult
+from opentamp.core.util_classes.param_setup import ParamSetup
+import opentamp.core.util_classes.common_constants as const
 from sco_py.expr import Expr, AffExpr, EqExpr, LEqExpr
 from errors_exceptions import PredicateException
 from collections import OrderedDict

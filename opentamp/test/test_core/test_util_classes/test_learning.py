@@ -1,12 +1,12 @@
 import unittest, os, h5py, time, main, scipy.stats
 import matplotlib.pylab as plt
 import numpy as np
-from core.util_classes.learning import PostLearner
-from core.parsing import parse_domain_config, parse_problem_config
-from core.util_classes.can import GreenCan
-from core.util_classes.viewer import OpenRAVEViewer
-from core.util_classes.plan_hdf5_serialization import PlanDeserializer
-from core.util_classes.openrave_body import OpenRAVEBody
+from opentamp.core.util_classes.learning import PostLearner
+from opentamp.core.parsing import parse_domain_config, parse_problem_config
+from opentamp.core.util_classes.can import GreenCan
+from opentamp.core.util_classes.viewer import OpenRAVEViewer
+from opentamp.core.util_classes.plan_hdf5_serialization import PlanDeserializer
+from opentamp.core.util_classes.openrave_body import OpenRAVEBody
 from pma import hl_solver
 from pma import robot_ll_solver
 

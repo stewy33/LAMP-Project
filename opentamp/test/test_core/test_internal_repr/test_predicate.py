@@ -1,8 +1,8 @@
 import unittest
-from core.internal_repr import predicate
-from core.internal_repr import parameter
+from opentamp.core.internal_repr import predicate
+from opentamp.core.internal_repr import parameter
 from errors_exceptions import ParamValidationException
-from core.util_classes.circle import GreenCircle, RedCircle, BlueCircle
+from opentamp.core.util_classes.circle import GreenCircle, RedCircle, BlueCircle
 import numpy as np
 
 class TestPredicate(unittest.TestCase):

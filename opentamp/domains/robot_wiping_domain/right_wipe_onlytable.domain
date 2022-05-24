@@ -4,8 +4,8 @@
 # implicity, all types require a name
 Types: Robot, RobotPose, CollisionShape 
 # Define the class location of each non-standard attribute type used in the above parameter type descriptions.
-Attribute Import Paths: Vector1d core.util_classes.matrix, Vector2d core.util_classes.matrix, Vector3d core.util_classes.matrix, ArmPose7d core.util_classes.matrix, Table core.util_classes.items, Box core.util_classes.items, Basket core.util_classes.items, Cloth core.util_classes.items, Can core.util_classes.items, Baxter core.util_classes.robots, Sawyer core.util_classes.robots
-Predicates Import Path: core.util_classes.robot_predicates
+Attribute Import Paths: Vector1d opentamp.core.util_classes.matrix, Vector2d opentamp.core.util_classes.matrix, Vector3d opentamp.core.util_classes.matrix, ArmPose7d opentamp.core.util_classes.matrix, Table opentamp.core.util_classes.items, Box opentamp.core.util_classes.items, Basket opentamp.core.util_classes.items, Cloth opentamp.core.util_classes.items, Can opentamp.core.util_classes.items, Baxter opentamp.core.util_classes.robots, Sawyer opentamp.core.util_classes.robots
+Predicates Import Path: opentamp.core.util_classes.robot_predicates
 
 Subtypes: Obstacle, Reachable - CollisionShape; Item - Reachable; Cloth, Can, Box, Basket - Item; Baxter, Sawyer - Robot; BaxterPose, SawyerPose - RobotPose
 

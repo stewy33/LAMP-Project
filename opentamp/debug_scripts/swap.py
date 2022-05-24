@@ -1,7 +1,7 @@
 from pma import hl_solver, ll_solver
-from core.parsing import parse_domain_config
-from core.parsing import parse_problem_config
-from core.util_classes.viewer import OpenRAVEViewer
+from opentamp.core.parsing import parse_domain_config
+from opentamp.core.parsing import parse_problem_config
+from opentamp.core.util_classes.viewer import OpenRAVEViewer
 
 from main import parse_file_to_dict
 

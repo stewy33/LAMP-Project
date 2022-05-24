@@ -1,7 +1,7 @@
 import unittest
 from pma import pr_graph, hl_solver
-from core.parsing import parse_domain_config
-from core.parsing import parse_problem_config
+from opentamp.core.parsing import parse_domain_config
+from opentamp.core.parsing import parse_problem_config
 import main
 
 class TestPRGraph(unittest.TestCase):

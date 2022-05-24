@@ -9,12 +9,12 @@ import robosuite.utils.transform_utils as robo_T
 from robosuite.controllers import load_controller_config
 from scipy.spatial.transform import Rotation
 
-import core.util_classes.transform_utils as T
+import opentamp.core.util_classes.transform_utils as T
 import main
-from core.parsing import parse_domain_config, parse_problem_config
-from core.util_classes.openrave_body import *
-from core.util_classes.transform_utils import *
-from core.util_classes.viewer import PyBulletViewer
+from opentamp.core.parsing import parse_domain_config, parse_problem_config
+from opentamp.core.util_classes.openrave_body import *
+from opentamp.core.util_classes.transform_utils import *
+from opentamp.core.util_classes.viewer import PyBulletViewer
 from pma import backtrack_ll_solver_gurobi as bt_ll
 from pma.hl_solver import *
 from pma.pr_graph import *
