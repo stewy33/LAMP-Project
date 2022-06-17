@@ -389,9 +389,9 @@ class FFSolver(HLSolver):
                         raise ProblemConfigException("Parameter '%s' for predicate type '%s' not defined in domain file."%(n, p_name))
                 try:
                     init_pred = domain.pred_schemas[p_name].pred_class(name="initpred%d"%i,
-                                                                          params=p_objs,
-                                                                          expected_param_types=domain.pred_schemas[p_name].expected_params,
-                                                                          env=env, debug=debug)
+                                                                        params=p_objs,
+                                                                        expected_param_types=domain.pred_schemas[p_name].expected_params,
+                                                                        env=env, debug=debug)
                     preds.append({'negated': False, 'pred': init_pred, 'hl_info': 'hl_state', 'active_timesteps': (0,0)})
                 except TypeError as e:
                     print(("type error for {}".format(pred)))
