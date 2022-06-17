@@ -7,9 +7,9 @@ Types: Can, Target, RobotPose, Robot, Grasp, Obstacle, Rotation
 
 # Define the class location of each non-standard attribute type used in the above parameter type descriptions.
 
-Attribute Import Paths: RedCircle core.util_classes.items, BlueCircle core.util_classes.items, GreenCircle core.util_classes.items, Vector1d core.util_classes.matrix, Vector2d core.util_classes.matrix, Wall core.util_classes.items, TwoLinkArm core.util_classes.robots
+Attribute Import Paths: RedCircle opentamp.core.util_classes.items, BlueCircle opentamp.core.util_classes.items, GreenCircle opentamp.core.util_classes.items, Vector1d opentamp.core.util_classes.matrix, Vector2d opentamp.core.util_classes.matrix, Wall opentamp.core.util_classes.items, TwoLinkArm opentamp.core.util_classes.robots
 
-Predicates Import Path: core.util_classes.namo_arm_predicates
+Predicates Import Path: opentamp.core.util_classes.namo_arm_predicates
 
 """
 

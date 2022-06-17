@@ -1,7 +1,7 @@
 import itertools
 import random
 
-from core.util_classes.namo_grip_predicates import dsafe
+from opentamp.core.util_classes.namo_grip_predicates import dsafe
 
 # NUM_CANS = 4
 

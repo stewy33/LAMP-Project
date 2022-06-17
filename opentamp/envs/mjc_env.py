@@ -4,7 +4,6 @@ import os
 import random
 from threading import Thread
 import time
-from tkinter import TclError
 import traceback
 import sys
 import xml.etree.ElementTree as xml
@@ -17,14 +16,14 @@ from gym import spaces
 from gym.core import Env
 
 import opentamp
-from opentamp.util_classes.mjc_xml_utils import *
-from opentamp.util_classes import transform_utils as T
+from opentamp.envs.mjc_xml_utils import *
+from opentamp.envs import transform_utils as T
 
 
 
-BASE_XML = os.getcwd() + '/opentamp'+'/robot_info/empty.xml'
-ENV_XML = os.getcwd() + '/opentamp'+'/robot_info/current_empty.xml'
-SPECIFIC_ENV_XML = os.getcwd() + '/temp/current_{0}.xml'
+BASE_XML = opentamp.__path__._path[0] +'/robot_info/empty.xml'
+ENV_XML = opentamp.__path__._path[0] + '/robot_info/current_empty.xml'
+SPECIFIC_ENV_XML = opentamp.__path__._path[0] + '/robot_info/temp_env_xmls/current_{0}.xml'
 
 _MAX_FRONTBUFFER_SIZE = 2048
 _CAM_WIDTH = 200
@@ -197,7 +196,7 @@ class MJCEnv(Env):
             # self._matplot_im = plt.imshow(self.render(view=False))
             self._matplot_im = plt.imshow(self.cur_im)
             plt.show()
-        except TclError:
+        except Error:
             print('\nCould not find display to launch viewer (this does not affect the ability to render images)\n')
 
 

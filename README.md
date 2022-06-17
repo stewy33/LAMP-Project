@@ -1,7 +1,10 @@
 # openTAMP
 OpenTAMP is an open-source library for optimization-based Task and Motion Planning (TAMP), and [Guided Imitation of TAMP](https://openreview.net/forum?id=-JwmfQC6IRt) with Python. OpenTAMP aims to make defining and solving new TAMP problems both easy and straightforward, even for users familiar with only the high-level ideas behind TAMP.
 
-## Installation and Setup
+## Installation and Setup 
+
+
+### Ubuntu
 To install and begin using OpenTAMP on an Ubuntu (>14.04) Linux Machine, follow these steps:
 1. Install Poetry by following instructions from [here](https://python-poetry.org/docs/#installation)
 1. If you're on Ubuntu 20.04 or later, make sure you have Python 3.7 available. Run the below commands if you're not sure
@@ -30,6 +33,41 @@ To install and begin using OpenTAMP on an Ubuntu (>14.04) Linux Machine, follow 
 **ToDo: Might need to add baselines and h-baselines because they're currently in setup.sh**
 
 
+### Mac
+To install and begin using OpenTAMP on a Mac, follow these steps
+1. Install Poetry by following instructions from [here](https://python-poetry.org/docs/#installation)
+1. Run ```brew install cmake glfw hdf5```
+1. Install [MuJoCo](https://mujoco.org/)
+    1. Download the correct MuJoCo binary for your OS from [here](https://mujoco.org/download). Be sure to use version 2.1.0 and not a higher version!
+    1. Extract the downloaded `mujoco210` directory into `~/.mujoco/mujoco210`
+    1. The first time you run the code, you may need to set the security permissions under settings to allow it to execute the mujoco binary
+    1. Add this to you zshrc (or bashrc is using bash): `export DYLD_LIBRARY_PATH=$(brew --prefix)/lib:$DYLD_LIBRARY_PATH`
+    1. You may encounter compiler errors on an Intel chip for the viewer, see [here](https://github.com/deepmind/dm_control/issues/276) for info (as of writing this, no solution was provided) 
+1. Make sure you have [git lfs](https://git-lfs.github.com/) installed
+1. Clone the OpenTAMP repository from GitHub to a folder of your choice: `https://github.com/Algorithmic-Alignment-Lab/OpenTAMP.git`
+    1. Double-check that you have downloaded all the LFS files by running `git lfs pull` from inside the local repository folder after you've cloned the repo!
+1. `cd` into the newly-installed library and run `poetry shell`, then `poetry install`
+1. Setup Fast Downward (see [here](#fdsetup)). The provided binary Fast-Forward was compiled against Ubuntu, and unforunately Fast-Forward is written against an old standard of C that can no longer compile. 
+1. Now, you should have a nice [virtual environment](https://realpython.com/python-virtual-environments-a-primer/) with python configured to run OpenTAMP! Whenever you want to use this, simply `cd` into the OpenTAMP folder and then run `poetry shell`
+1. (Optional) If you'd like to use [Gurobi](https://www.gurobi.com/) as a backend solver for motion-planning problems, then follow steps [here](https://www.gurobi.com/wp-content/plugins/hd_documentations/content/pdf/quickstart_mac_8.1.pdf) to obtain and activate a license (note: free licenses are available for students and academic users!)
+    1. Note that for obtaining a license, you must either install gurobi [via conda or from source](https://support.gurobi.com/hc/en-us/articles/360044290292-How-do-I-install-Gurobi-for-Python-)
+
+#### Troubleshooting
+For some issues encountered on a Mac:
+1. For an M1 chip, you may need to install x86 versions of various packages. Reference [here](https://medium.com/mkdir-awesome/how-to-install-x86-64-homebrew-packages-on-apple-m1-macbook-54ba295230f) for a guide on how to do so
+1. If you see `ImportError: Failed to load GLFW3 shared library`, try running `pip install --force-reinstall glfw`
+1. If you see `No module named 'importlib_metadata'` try running `pip install --force-reinstall gym`
+
+
+### <a name="fdsetup"></a>Setup FastDownward Planner
+The code provides wrappers to invoke the Fast-Forward  and the Fast Downward task planners. Fast-Forward  is provided through a pre-compiled binary and hence can be run without extra setup (but unfortunately only from Ubuntu). To setup Fast Downward, we need to take the following steps.
+1. Move to the downward directory `cd opentamp/task_planners/downward`
+1. Run ```
+        git submodule init
+        git submodule update
+        ```
+1. Build the downward binary by executing `./build.py`
+
 ### Verify planning
 
 Try running `python opentamp/src/test_grip_det.py` from the *root of the repository*, and if this script successfully completes and displays a short video at the end, your installation is correct!
@@ -37,7 +75,11 @@ Try running `python opentamp/src/test_grip_det.py` from the *root of the reposit
 This should take under a minute to run.
 
 
-### Verify learning
+### Install Learning Dependencies
+To run code related to learning, install these extra dependencies
+1. `poetry install --extras learning`
+
+### Verify learning (OUTDATED!!! WILL UPDATE SOON)
 If you wish to train policies from the code, verify that a Mujoco key titled `mjkey.txt` is in your home directory an that `FULL_INSTALL=true` in `setup.sh`. Once this has completed, make sure you are on the virtual env (by running `tampenv`) and try running `test_training.sh`; this script will attempt to train policies for a two object pick-place problem with some default parameter settings. Once completed, is will generate some plots on performance and videos of rollouts into the `~/Dropbox` directory. Note the script will use about 16 proccesses, so it's reccomended to run it from at least an 8-physical core machine.
 
 
@@ -73,13 +115,13 @@ The next portion specifies where to find various necessary code
 
 First:
 
-`Attribute Import Paths: RedCircle core.util_classes.items, Vector1d core.util_classes.matrix, Vector2d core.util_classes.matrix, Wall core.util_classes.items, NAMO core.util_classes.robots`
+`Attribute Import Paths: RedCircle opentamp.core.util_classes.items, Vector1d opentamp.core.util_classes.matrix, Vector2d opentamp.core.util_classes.matrix, Wall opentamp.core.util_classes.items, NAMO opentamp.core.util_classes.robots`
 
 Here, we tell the planner where to find the python classes parameter attributes can take on (used in Primitive Predicates)
 
 Second:
 
-`Predicates Import Path: core.util_classes.namo_predicates`
+`Predicates Import Path: opentamp.core.util_classes.namo_predicates`
 
 Here, we tell the planner where to find the python classes defining predicates
 
