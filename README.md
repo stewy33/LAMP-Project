@@ -15,23 +15,18 @@ To install and begin using OpenTAMP on an Ubuntu (>14.04) Linux Machine, follow 
         sudo apt-get install python3.7-dev
         ```
 1. Make sure you have [tkinter installed](https://tkdocs.com/tutorial/install.html): `sudo apt-get install python3.7-tk`
-2. Make sure you have libglew installed `sudo apt-get install libglfw3 libglew2.1`
+1. Make sure you have libglew installed `sudo apt-get install libglfw3 libglew2.1`
 1. Install [MuJoCo](https://mujoco.org/)
     1. Make sure you install openmpi for linux (for use with MuJoCo): `sudo apt install libopenmpi-dev`
     1. Download the correct MuJoCo binary for your OS from [here](https://mujoco.org/download). Be sure to use version 2.1.0 and not a higher version!
     1. Extract the downloaded `mujoco210` directory into `~/.mujoco/mujoco210`
     1. Make sure to run the following (for future convenience, it's recommended to add this line to your `.bashrc` file) `export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libGLEW.so`
-1. Make sure you have [git lfs](https://git-lfs.github.com/) installed
 1. Clone the OpenTAMP repository from GitHub to a folder of your choice: `https://github.com/Algorithmic-Alignment-Lab/OpenTAMP.git`
-    1. Double-check that you have downloaded all the LFS files by running `git lfs pull` from inside the local repository folder after you've cloned the repo!
 1. `cd` into the newly-installed library and run `poetry shell`, then `poetry install`
     1. Especially on ubuntu 20.04, you might first have to manually specify the path to python 3.7 via `poetry env use /usr/bin/python3.7` 
 1. Now, you should have a nice [virtual environment](https://realpython.com/python-virtual-environments-a-primer/) with python configured to run OpenTAMP! Whenever you want to use this, simply `cd` into the OpenTAMP folder and then run `poetry shell`
 1. (Optional) If you'd like to use [Gurobi](https://www.gurobi.com/) as a backend solver for motion-planning problems, then follow steps [here](https://www.gurobi.com/wp-content/plugins/hd_documentations/content/pdf/quickstart_mac_8.1.pdf) to obtain and activate a license (note: free licenses are available for students and academic users!)
     1. Note that for obtaining a license, you must either install gurobi [via conda or from source](https://support.gurobi.com/hc/en-us/articles/360044290292-How-do-I-install-Gurobi-for-Python-)
-
-**ToDo: Might need to add baselines and h-baselines because they're currently in setup.sh**
-
 
 ### Mac
 To install and begin using OpenTAMP on a Mac, follow these steps
@@ -43,9 +38,7 @@ To install and begin using OpenTAMP on a Mac, follow these steps
     1. The first time you run the code, you may need to set the security permissions under settings to allow it to execute the mujoco binary
     1. Add this to you zshrc (or bashrc is using bash): `export DYLD_LIBRARY_PATH=$(brew --prefix)/lib:$DYLD_LIBRARY_PATH`
     1. You may encounter compiler errors on an Intel chip for the viewer, see [here](https://github.com/deepmind/dm_control/issues/276) for info (as of writing this, no solution was provided) 
-1. Make sure you have [git lfs](https://git-lfs.github.com/) installed
 1. Clone the OpenTAMP repository from GitHub to a folder of your choice: `https://github.com/Algorithmic-Alignment-Lab/OpenTAMP.git`
-    1. Double-check that you have downloaded all the LFS files by running `git lfs pull` from inside the local repository folder after you've cloned the repo!
 1. `cd` into the newly-installed library and run `poetry shell`, then `poetry install`
 1. Setup Fast Downward (see [here](#fdsetup)). The provided binary Fast-Forward was compiled against Ubuntu, and unforunately Fast-Forward is written against an old standard of C that can no longer compile. 
 1. Now, you should have a nice [virtual environment](https://realpython.com/python-virtual-environments-a-primer/) with python configured to run OpenTAMP! Whenever you want to use this, simply `cd` into the OpenTAMP folder and then run `poetry shell`
