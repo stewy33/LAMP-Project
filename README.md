@@ -7,7 +7,7 @@ OpenTAMP is an open-source library for optimization-based Task and Motion Planni
 ### Ubuntu
 To install and begin using OpenTAMP on an Ubuntu (>14.04) Linux Machine, follow these steps:
 1. Install Poetry by following instructions from [here](https://python-poetry.org/docs/#installation)
-1. Make sure you have libglew installed `sudo apt-get install libglfw3 libglew2.1`
+1. Make sure you have libglew (`sudo apt-get install libglfw3 libglew2.1`) and patchelf (`sudo apt-get install patchelf`) installed.
 1. Install [MuJoCo](https://mujoco.org/)
     1. Make sure you install openmpi for linux (for use with MuJoCo): `sudo apt install libopenmpi-dev`
     1. Download the correct MuJoCo binary for your OS from [here](https://mujoco.org/download). Be sure to use version 2.1.0 and not a higher version!
