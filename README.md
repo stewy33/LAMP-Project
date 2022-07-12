@@ -45,15 +45,16 @@ For some issues encountered on a Mac:
 ### <a name="fdsetup"></a>Setup FastDownward Planner
 The code provides wrappers to invoke the Fast-Forward  and the Fast Downward task planners. Fast-Forward  is provided through a pre-compiled binary and hence can be run without extra setup (but unfortunately only from Ubuntu). To setup Fast Downward, we need to take the following steps.
 1. Move to the downward directory `cd opentamp/task_planners/downward`
-1. Run ```
-        git submodule init
-        git submodule update
-        ```
+1. Run: 
+    ```
+    git submodule init
+    git submodule update
+    ```
 1. Build the downward binary by executing `./build.py`
 
 ### Verify planning
 
-Try running `python opentamp/src/test_grip_det.py` from the *root of the repository*, and if this script successfully completes and displays a short video at the end, your installation is correct!
+Try running `python opentamp/debug_scripts/test_grip_det.py` from the *root of the repository*, and if this script successfully completes and displays a short video at the end, your installation is correct!
 
 This should take under a minute to run.
 

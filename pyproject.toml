@@ -19,13 +19,13 @@ gym = "^0.21.0"
 robodesk = ">=1.0.0"
 osqp = "*"
 sco-py = {git = "https://github.com/Algorithmic-Alignment-Lab/sco.git", branch = "main" }
-torch = {version = "*", optional = true}
-pandas = {version = "*", optional = true}
-seaborn = {version = "*", optional = true}
-imageio = {version = "^2.12.0", optional = true}
-mpi4py = {version = "^3.1.2", optional = true}
-matplotlib = {version = "^3.5.0", optional = true}
-gurobipy = {version = ">=9.0.0", optional = true}
+torch = {version = "*"}
+pandas = {version = "*"}
+seaborn = {version = "*"}
+imageio = {version = "^2.12.0"}
+mpi4py = {version = "^3.1.2"}
+matplotlib = {version = "^3.5.0"}
+gurobipy = {version = ">=9.0.0"}
 
 [tool.poetry.dev-dependencies]
 
