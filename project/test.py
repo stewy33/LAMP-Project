@@ -15,10 +15,13 @@ import opentamp.core.util_classes.common_constants as const
 from opentamp.core.util_classes.robots import Baxter
 from opentamp.core.util_classes.openrave_body import *
 from opentamp.core.util_classes.transform_utils import *
-from opentamp.pma.hl_solver import *
-from opentamp.pma.pr_graph import *
+
+from opentamp.pma.hl_solver import FDSolver
+from opentamp.pma.pr_graph import p_mod_abs
 from opentamp.pma import backtrack_ll_solver_OSQP as bt_ll
-from opentamp.pma.robot_solver import RobotSolverOSQP
+
+# from opentamp.pma.robot_solver import RobotSolverOSQP
+from project.solver import RobotSolverOSQP
 import opentamp.core.util_classes.transform_utils as T
 
 from opentamp.policy_hooks.utils.file_utils import load_config, setup_dirs, LOG_DIR
@@ -80,8 +83,8 @@ if __name__ == "__main__":
     # const.EEREACHABLE_ROT_COEFF = 8e-3
     bt_ll.DEBUG = True
     openrave_bodies = None
-    domain_fname = "simulation/right_desk.domain"
-    prob = "simulation/robodesk_prob.prob"
+    domain_fname = "project/right_desk.domain"  # "simulation/move_to_grasp.domain"
+    prob = "project/robodesk_prob.prob"
     d_c = main.parse_file_to_dict(domain_fname)
     domain = parse_domain_config.ParseDomainConfig.parse(d_c)
     hls = FDSolver(d_c, cleanup_files=False)

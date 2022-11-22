@@ -1489,36 +1489,27 @@ class MoveToPlaceRight(MoveToPlaceArm):
         super(MoveToPlaceRight, self).__init__('right')
 
 
-actions = [MoveToGraspRight(), MoveToPutdownRight(), GraspRight(), PutdownRight()]
-right_dom_str = dom_str
-for action in actions:
-    right_dom_str += '\n\n'
-    print(action.name)
-    right_dom_str += action.to_str()
-# removes all the extra spaces
-right_dom_str = right_dom_str.replace('            ', '')
-right_dom_str = right_dom_str.replace('    ', '')
-right_dom_str = right_dom_str.replace('    ', '')
-print(right_dom_str)
-f = open('simulation/right_robot.domain', 'w')
-f.write(right_dom_str)
-
+def write_domain(actions, fname):
+    dom_str = door_dom_str
+    for action in actions:
+        dom_str += '\n\n'
+        print(action.name)
+        dom_str += action.to_str()
+    dom_str = dom_str.replace('            ', '')
+    dom_str = dom_str.replace('    ', '')
+    dom_str = dom_str.replace('    ', '')
+    print(dom_str)
+    with open(fname, 'w') as f:
+        f.write(dom_str)
 
 
 ### RIGHT DESK DOMAIN
-actions = [MoveToGraspRight(), LiftRight(), \
-           SlideOpenRight(), SlideCloseRight(),
-           PlaceRight(), PlaceInDoorRight(), StackRight(),
-           HoldRight()]#, MoveToPlaceRight()]
-right_dom_str = door_dom_str
-for action in actions:
-    right_dom_str += '\n\n'
-    print(action.name)
-    right_dom_str += action.to_str()
-right_dom_str = right_dom_str.replace('            ', '')
-right_dom_str = right_dom_str.replace('    ', '')
-right_dom_str = right_dom_str.replace('    ', '')
-print(right_dom_str)
-f = open('simulation/right_desk.domain', 'w')
-f.write(right_dom_str)
+right_desk_actions = [
+    MoveToGraspRight(), LiftRight(), SlideOpenRight(), SlideCloseRight(),
+    PlaceRight(), PlaceInDoorRight(), StackRight(), HoldRight()
+] #, MoveToPlaceRight()]
+write_domain(right_desk_actions, "project/right_desk.domain")
 
+### RIGHT DESK DOMAIN
+move_to_grasp_actions = [MoveToGraspRight()]
+write_domain(move_to_grasp_actions, "project/move_to_grasp.domain")
