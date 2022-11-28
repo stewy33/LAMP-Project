@@ -1,13 +1,511 @@
+import time
+import tqdm
+from typing import List
+
 import numpy as np
+import osqp
+import scipy
 
 from sco_py.sco_osqp.prob import Prob
-from sco_py.sco_osqp.solver import Solver
+from sco_py.sco_osqp.solver import Solver as SolverBase
+import sco_py.sco_osqp.osqp_utils as osqp_utils
 
 from opentamp.pma.backtrack_ll_solver_OSQP import MAX_PRIORITY
-from opentamp.pma.robot_solver import RobotSolverOSQP
+from opentamp.pma.robot_solver import RobotSolverOSQP as RobotSolverOSQPBase
 
 
-class RobotSolverOSQP(RobotSolverOSQP):
+# @profile
+def osqp_optimize(
+    osqp_vars: List[osqp_utils.OSQPVar],
+    _sco_vars: List[osqp_utils.Variable],
+    osqp_quad_objs: List[osqp_utils.OSQPQuadraticObj],
+    osqp_lin_objs: List[osqp_utils.OSQPLinearObj],
+    osqp_lin_cnt_exprs: List[osqp_utils.OSQPLinearConstraint],
+    eps_abs: float = osqp_utils.DEFAULT_EPS_ABS,
+    eps_rel: float = osqp_utils.DEFAULT_EPS_REL,
+    max_iter: int = osqp_utils.DEFAULT_MAX_ITER,
+    rho: float = osqp_utils.DEFAULT_RHO,
+    adaptive_rho: bool = osqp_utils.DEFAULT_ADAPTIVE_RHO,
+    sigma: float = osqp_utils.DEFAULT_SIGMA,
+    verbose: bool = False,
+):
+    """
+    Calls the OSQP optimizer on the current QP approximation with a given
+    penalty coefficient.
+    """
+
+    # First, we need to setup the problem as described here: https://osqp.org/docs/solver/index.html
+    # Specifically, we need to start by constructing the x vector that contains all the
+    # OSQPVars that are part of the QP. This will take the form of a mapping from OSQPVar to
+    # index within the x vector.
+    var_to_index_dict = {}
+    osqp_var_list = list(osqp_vars)
+    # Make sure to sort this list to get a canonical ordering of variables to make
+    # matrix construction easier
+    osqp_var_list.sort()
+    for idx, osqp_var in enumerate(osqp_var_list):
+        var_to_index_dict[osqp_var] = idx
+    num_osqp_vars = len(osqp_vars)
+
+    # Construct the q-vector by looping through all the linear objectives
+    q_vec = np.zeros(num_osqp_vars)
+    for lin_obj in osqp_lin_objs:
+        q_vec[var_to_index_dict[lin_obj.osqp_var]] += lin_obj.coeff
+
+    # Next, construct the P-matrix by looping through all quadratic objectives
+
+    # Since P must be upper-triangular, the shape must be (num_osqp_vars, num_osqp_vars)
+    P_mat = np.zeros((num_osqp_vars, num_osqp_vars))
+    for quad_obj in osqp_quad_objs:
+        for i in range(quad_obj.coeffs.shape[0]):
+            idx2 = var_to_index_dict[quad_obj.osqp_vars1[i]]
+            idx1 = var_to_index_dict[quad_obj.osqp_vars2[i]]
+            if idx1 > idx2:
+                P_mat[idx2, idx1] += 0.5 * quad_obj.coeffs[i]
+            elif idx1 < idx2:
+                P_mat[idx1, idx2] += 0.5 * quad_obj.coeffs[i]
+            else:
+                P_mat[idx1, idx2] += quad_obj.coeffs[i]
+
+    # Next, setup the A-matrix and l and u vectors
+    A_mat = np.zeros((num_osqp_vars + len(osqp_lin_cnt_exprs), num_osqp_vars))
+    l_vec = np.zeros(num_osqp_vars + len(osqp_lin_cnt_exprs))
+    u_vec = np.zeros(num_osqp_vars + len(osqp_lin_cnt_exprs))
+
+    # First add all the linear constraints
+    # However, note that this isn't entirely straightforward: some
+    row_num = 0
+    for lin_constraint in osqp_lin_cnt_exprs:
+        l_vec[row_num] = lin_constraint.lb
+        u_vec[row_num] = lin_constraint.ub
+        for i in range(lin_constraint.coeffs.shape[0]):
+            # if var_to_index_dict[lin_constraint.osqp_vars[i]] == 193:
+            #     import ipdb; ipdb.set_trace()
+            A_mat[
+                row_num, var_to_index_dict[lin_constraint.osqp_vars[i]]
+            ] = lin_constraint.coeffs[i]
+        row_num += 1
+
+    # Then, add the trust regions for every variable as constraints
+    for osqp_var in osqp_vars:
+        A_mat[row_num, var_to_index_dict[osqp_var]] = 1.0
+        l_vec[row_num] = osqp_var.get_lower_bound()
+        u_vec[row_num] = osqp_var.get_upper_bound()
+        row_num += 1
+
+    # Finally, construct the matrices and call the OSQP Solver!
+    P_mat_sparse = scipy.sparse.csc_matrix(P_mat)
+    A_mat_sparse = scipy.sparse.csc_matrix(A_mat)
+
+    m = osqp.OSQP()
+
+    m.setup(
+        P=P_mat_sparse,
+        q=q_vec,
+        A=A_mat_sparse,
+        rho=rho,
+        sigma=sigma,
+        l=l_vec,
+        u=u_vec,
+        eps_abs=eps_abs,
+        eps_rel=eps_rel,
+        delta=1e-07,
+        # polish=True,
+        polish=False,
+        adaptive_rho=adaptive_rho,
+        warm_start=True,
+        verbose=False,
+        max_iter=max_iter,
+    )
+
+    solve_res = m.solve()
+
+    if solve_res.info.status_val == -2 and verbose:
+        print(
+            "ERROR! OSQP Solver hit max iteration limit. Either reduce your tolerances or increase the max iterations!"
+        )
+
+    return (solve_res, var_to_index_dict)
+
+
+def penalty_sqp_optimize(
+    prob,
+    add_convexified_terms=False,
+    osqp_eps_abs=osqp_utils.DEFAULT_EPS_ABS,
+    osqp_eps_rel=osqp_utils.DEFAULT_EPS_REL,
+    osqp_max_iter=osqp_utils.DEFAULT_MAX_ITER,
+    rho: float = osqp_utils.DEFAULT_RHO,
+    adaptive_rho: bool = osqp_utils.DEFAULT_ADAPTIVE_RHO,
+    sigma: float = osqp_utils.DEFAULT_SIGMA,
+    verbose=False,
+):
+    """
+    Calls the OSQP optimizer on the current QP approximation with a given
+    penalty coefficient. Note that add_convexified_terms is a convenience
+    boolean useful to toggle whether or not self._osqp_penalty_exprs and
+    self._osqp_penalty_cnts are included in the optimization problem
+    """
+
+    lin_objs = prob._osqp_lin_objs
+    cnt_exprs = prob._osqp_lin_cnt_exprs[:]
+
+    if add_convexified_terms:
+        lin_objs += prob._osqp_penalty_exprs
+        for penalty_cnt_list in prob._osqp_penalty_cnts:
+            cnt_exprs.extend(penalty_cnt_list)
+
+    solve_res, var_to_index_dict = osqp_optimize(
+        prob._osqp_vars,
+        prob._vars,
+        prob._osqp_quad_objs,
+        lin_objs,
+        cnt_exprs,
+        osqp_eps_abs,
+        osqp_eps_rel,
+        osqp_max_iter,
+        rho=rho,
+        adaptive_rho=adaptive_rho,
+        sigma=sigma,
+        verbose=verbose,
+    )
+
+    # If the solve failed, just return False
+    if solve_res.info.status_val not in [1, 2]:
+        return False
+
+    # If the solve succeeded, update all the variables with these new values, then
+    # run he callback before returning true
+    osqp_utils.update_osqp_vars(var_to_index_dict, solve_res.x)
+    prob._update_vars()
+    prob._callback()  # TODO: Modify to get the visualizer in a better spot.
+    return True
+
+
+class Solver(SolverBase):
+    def solve(
+        self,
+        prob,
+        method=None,
+        tol=None,
+        verbose=False,
+        osqp_eps_abs=osqp_utils.DEFAULT_EPS_ABS,
+        osqp_eps_rel=osqp_utils.DEFAULT_EPS_REL,
+        osqp_max_iter=osqp_utils.DEFAULT_MAX_ITER,
+        rho: float = osqp_utils.DEFAULT_RHO,
+        adaptive_rho: bool = osqp_utils.DEFAULT_ADAPTIVE_RHO,
+        sigma: float = osqp_utils.DEFAULT_SIGMA,
+    ):
+        """
+        Returns whether solve succeeded.
+
+        Given a sco (sequential convex optimization) problem instance, solve
+        using specified method to find a solution. If the specified method
+        doesn't exist, an exception is thrown.
+        """
+        if tol is not None:
+            self.min_trust_region_size = tol
+            self.min_approx_improve = tol
+            self.cnt_tolerance = tol
+
+        if method == "penalty_sqp":
+            return self._penalty_sqp(
+                prob,
+                verbose=verbose,
+                osqp_eps_abs=osqp_eps_abs,
+                osqp_eps_rel=osqp_eps_rel,
+                osqp_max_iter=osqp_max_iter,
+                rho=rho,
+                adaptive_rho=adaptive_rho,
+                sigma=sigma,
+            )
+        elif method == "metropolis_hastings":
+            return self._metropolis_hastings(
+                prob,
+                verbose=verbose,
+                osqp_eps_abs=osqp_eps_abs,
+                osqp_eps_rel=osqp_eps_rel,
+                osqp_max_iter=osqp_max_iter,
+                rho=rho,
+                adaptive_rho=adaptive_rho,
+                sigma=sigma,
+            )
+        else:
+            raise Exception("This method is not supported.")
+
+    def _set_prob_vars(self, prob, x, var_to_index_dict):
+        osqp_utils.update_osqp_vars(var_to_index_dict, x)
+        prob._update_vars()
+
+    # @profile
+    def _metropolis_hastings(
+        self,
+        prob,
+        verbose=False,
+        osqp_eps_abs=osqp_utils.DEFAULT_EPS_ABS,
+        osqp_eps_rel=osqp_utils.DEFAULT_EPS_REL,
+        osqp_max_iter=osqp_utils.DEFAULT_MAX_ITER,  # 100_000
+        rho: float = osqp_utils.DEFAULT_RHO,
+        adaptive_rho: bool = osqp_utils.DEFAULT_ADAPTIVE_RHO,
+        sigma: float = osqp_utils.DEFAULT_SIGMA,
+    ):
+        """
+        Run Metropolis-Hastings.
+        Returns true if a feasible solution is returned.
+        """
+
+        var_to_index_dict = {osqp_var: i for i, osqp_var in enumerate(prob._osqp_vars)}
+        burn_in = 5_000
+
+        def logpdf(x, mu, sigma=1):
+            return (
+                -0.5 * np.log(2 * np.pi) * x.size
+                - np.log(sigma)
+                - np.sum((x - mu) ** 2) / (2 * sigma**2)
+            )
+
+        penalty_coeff = self.initial_penalty_coeff
+        print(penalty_coeff)
+        penalty_coeff = 100
+        for i in range(self.max_merit_coeff_increases):
+
+            x = np.zeros(len(prob._osqp_vars))
+            self._set_prob_vars(prob, x, var_to_index_dict)
+            val = prob.get_value(penalty_coeff, vectorize=False)
+            for j in tqdm.trange(osqp_max_iter):
+                # Sample from proposal distribution and get objective value
+                x_proposed = np.random.normal(loc=x)
+                self._set_prob_vars(prob, x_proposed, var_to_index_dict)
+                val_proposed = prob.get_value(penalty_coeff, vectorize=False)
+
+                # define acceptance probability
+                log_p_proposed = val_proposed
+                log_p_sampled = val
+                log_q_proposed = logpdf(x_proposed, mu=x)
+                log_q_sampled = logpdf(x, mu=x_proposed)
+                log_A = log_p_proposed + log_q_sampled - log_p_sampled - log_q_proposed
+
+                # Accept or reject and do appropriate setting of variables
+                if np.random.uniform() < min(1, np.exp(log_A)):
+                    x = x_proposed
+                else:
+                    self._set_prob_vars(prob, x, var_to_index_dict)
+
+                # If the solve succeeded
+                if i > burn_in and prob.get_max_cnt_violation() < self.cnt_tolerance:
+                    prob._callback()  # TODO: Modify to get the visualizer in a better spot.
+                    return True
+
+            penalty_coeff *= self.merit_coeff_increase_ratio
+
+        return False
+
+    # @profile
+    def _penalty_sqp(
+        self,
+        prob,
+        verbose=False,
+        osqp_eps_abs=osqp_utils.DEFAULT_EPS_ABS,
+        osqp_eps_rel=osqp_utils.DEFAULT_EPS_REL,
+        osqp_max_iter=osqp_utils.DEFAULT_MAX_ITER,
+        rho: float = osqp_utils.DEFAULT_RHO,
+        adaptive_rho: bool = osqp_utils.DEFAULT_ADAPTIVE_RHO,
+        sigma: float = osqp_utils.DEFAULT_SIGMA,
+    ):
+        """
+        Return true is the penalty sqp method succeeds.
+        Uses Penalty Sequential Quadratic Programming to solve the problem
+        instance.
+        """
+        start = time.time()
+        trust_region_size = self.initial_trust_region_size
+        penalty_coeff = self.initial_penalty_coeff
+
+        if not prob.find_closest_feasible_point():
+            return False
+
+        for i in range(self.max_merit_coeff_increases):
+            success = self._min_merit_fn(
+                prob,
+                penalty_coeff,
+                trust_region_size,
+                verbose=verbose,
+                osqp_eps_abs=osqp_eps_abs,
+                osqp_eps_rel=osqp_eps_rel,
+                osqp_max_iter=osqp_max_iter,
+                rho=rho,
+                adaptive_rho=adaptive_rho,
+                sigma=sigma,
+            )
+            if verbose:
+                print("\n")
+
+            if prob.get_max_cnt_violation() > self.cnt_tolerance:
+                penalty_coeff = penalty_coeff * self.merit_coeff_increase_ratio
+                trust_region_size = self.initial_trust_region_size
+            else:
+                end = time.time()
+                if verbose:
+                    print("sqp time: ", end - start)
+                return success
+        end = time.time()
+        if verbose:
+            print("sqp time: ", end - start)
+        return False
+
+    # @profile
+    def _min_merit_fn(
+        self,
+        prob,
+        penalty_coeff,
+        trust_region_size,
+        verbose=False,
+        osqp_eps_abs=osqp_utils.DEFAULT_EPS_ABS,
+        osqp_eps_rel=osqp_utils.DEFAULT_EPS_REL,
+        osqp_max_iter=osqp_utils.DEFAULT_MAX_ITER,
+        rho: float = osqp_utils.DEFAULT_RHO,
+        adaptive_rho: bool = osqp_utils.DEFAULT_ADAPTIVE_RHO,
+        sigma: float = osqp_utils.DEFAULT_SIGMA,
+    ):
+        """
+        Minimize merit function for penalty sqp.
+        Returns true if the merit function is minimized successfully.
+        """
+        sqp_iter = 1
+
+        while True:
+            if verbose:
+                print(("  sqp_iter: {0}".format(sqp_iter)))
+
+            prob.convexify()
+            prob.update_obj(penalty_coeff)
+            merit = prob.get_value(penalty_coeff)
+            merit_vec = prob.get_value(penalty_coeff, True)
+            prob.save()
+
+            while True:
+                if verbose:
+                    print(("    trust region size: {0}".format(trust_region_size)))
+                prob.add_trust_region(trust_region_size)
+                _ = penalty_sqp_optimize(
+                    prob,
+                    osqp_eps_abs=osqp_eps_abs,
+                    osqp_eps_rel=osqp_eps_rel,
+                    osqp_max_iter=osqp_max_iter,
+                    rho=rho,
+                    adaptive_rho=adaptive_rho,
+                    sigma=sigma,
+                    verbose=verbose,
+                )
+                model_merit = prob.get_approx_value(penalty_coeff)
+                model_merit_vec = prob.get_approx_value(penalty_coeff, True)
+                new_merit = prob.get_value(penalty_coeff)
+
+                approx_merit_improve = merit - model_merit
+                if not approx_merit_improve:
+                    approx_merit_improve += 1e-12
+
+                # we converge if one of the violated constraint groups
+                # is below the minimum improvement
+                approx_improve_vec = merit_vec - model_merit_vec
+                violated = merit_vec > self.cnt_tolerance
+                if approx_improve_vec.shape == (0,):
+                    approx_improve_vec = np.array([approx_merit_improve])
+                    violated = approx_improve_vec > -np.inf
+
+                exact_merit_improve = merit - new_merit
+
+                merit_improve_ratio = exact_merit_improve / approx_merit_improve
+
+                if verbose:
+                    print(
+                        (
+                            "      merit: {0}. model_merit: {1}. new_merit: {2}".format(
+                                merit, model_merit, new_merit
+                            )
+                        )
+                    )
+                    print(
+                        (
+                            "      approx_merit_improve: {0}. exact_merit_improve: {1}. merit_improve_ratio: {2}".format(
+                                approx_merit_improve,
+                                exact_merit_improve,
+                                merit_improve_ratio,
+                            )
+                        )
+                    )
+
+                if self._bad_model(approx_merit_improve):
+                    if verbose:
+                        print(
+                            (
+                                "Approximate merit function got worse ({0})".format(
+                                    approx_merit_improve
+                                )
+                            )
+                        )
+                        print(
+                            "Either convexification is wrong to zeroth order, or you're in numerical trouble."
+                        )
+                    prob.restore()
+                    return False
+
+                if self._y_converged(approx_merit_improve):
+                    if verbose:
+                        print("Converged: y tolerance")
+                    prob.restore()
+                    return True
+
+                # we converge if one of the violated constraint groups
+                # is below the minimum improvement and none of its overlapping
+                # groups are making progress
+                prob.nonconverged_groups = []
+                for gid, idx in prob.gid2ind.items():
+                    if (
+                        violated[idx]
+                        and approx_improve_vec[idx] < self.min_approx_improve
+                    ):
+                        overlap_improve = False
+                        for gid2 in prob._cnt_groups_overlap[gid]:
+                            if (
+                                approx_improve_vec[prob.gid2ind[gid2]]
+                                > self.min_approx_improve
+                            ):
+                                overlap_improve = True
+                                break
+                        if overlap_improve:
+                            continue
+                        prob.nonconverged_groups.append(gid)
+                if len(prob.nonconverged_groups) > 0:
+                    if verbose:
+                        print("Converged: y tolerance")
+                    prob.restore()
+                    # store the failed groups into the prob
+
+                    for i, g in enumerate(sorted(prob._cnt_groups.keys())):
+                        if violated[i] and self._y_converged(approx_improve_vec[i]):
+                            prob.nonconverged_groups.append(g)
+                    return True
+
+                if self._shrink_trust_region(exact_merit_improve, merit_improve_ratio):
+                    prob.restore()
+                    if verbose:
+                        print("Shrinking trust region")
+                    trust_region_size = trust_region_size * self.trust_shrink_ratio
+                else:
+                    if verbose:
+                        print("Growing trust region")
+                    trust_region_size = trust_region_size * self.trust_expand_ratio
+                    break  # from trust region loop
+
+                if self._x_converged(trust_region_size):
+                    if verbose:
+                        print("Converged: x tolerance")
+                    return True
+
+            sqp_iter = sqp_iter + 1
+
+
+class RobotSolverOSQP(RobotSolverOSQPBase):
     # @profile
     def _solve_opt_prob(
         self,
@@ -143,7 +641,7 @@ class RobotSolverOSQP(RobotSolverOSQP):
         # Call the solver on this problem now that it's been constructed
         success = solv.solve(
             self._prob,
-            method="penalty_sqp",
+            method="metropolis_hastings",  # "penalty_sqp",
             tol=tol,
             verbose=verbose,
             osqp_eps_abs=self.osqp_eps_abs,
