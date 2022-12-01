@@ -11,10 +11,10 @@ import time
 from opentamp.core.internal_repr.plan import Plan
 from opentamp.core.util_classes.namo_predicates import dsafe
 from opentamp.core.util_classes.openrave_body import *
-from pma.hl_solver import FFSolver
+from opentamp.pma.hl_solver import FFSolver
 from opentamp.policy_hooks.utils.load_task_definitions import get_tasks, plan_from_str
 from opentamp.policy_hooks.utils.policy_solver_utils import *
-import policy_hooks.utils.policy_solver_utils as utils
+import opentamp.policy_hooks.utils.policy_solver_utils as utils
 
 NO_COL = True
 NUM_OBJS = 4

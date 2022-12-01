@@ -236,6 +236,16 @@ class Solver(SolverBase):
         osqp_utils.update_osqp_vars(var_to_index_dict, x)
         prob._update_vars()
 
+    def _grad(self, prob, penalty_coeff):
+        var_grads = {osqp_var: 0.0 for osqp_var in prob._osqp_vars}
+        for bound_expr in prob._quad_obj_exprs + prob._nonquad_obj_exprs:
+            var_grads[bound_expr] += bound_expr.expr.grad(bound_expr.var.get_value())
+        for bound_expr in prob._nonlin_cnt_exprs:
+            cnt_vio = self._compute_cnt_violation(bound_expr)
+            breakpoint()
+        #    value += penalty_coeff * np.sum(cnt_vio)
+        #    var_grads[bound_expr] += penalty_coeff * bound_expr.expr.grad(bound_expr.var.get_value())
+
     # @profile
     def _metropolis_hastings(
         self,
@@ -265,17 +275,18 @@ class Solver(SolverBase):
 
         penalty_coeff = self.initial_penalty_coeff
         print(penalty_coeff)
-        penalty_coeff = 100
+        penalty_coeff = 10
         for i in range(self.max_merit_coeff_increases):
 
             x = np.zeros(len(prob._osqp_vars))
             self._set_prob_vars(prob, x, var_to_index_dict)
-            val = prob.get_value(penalty_coeff, vectorize=False)
+            val = -prob.get_value(penalty_coeff, vectorize=False)
+            # grad = self._grad(prob, penalty_coeff)
             for j in tqdm.trange(osqp_max_iter):
                 # Sample from proposal distribution and get objective value
                 x_proposed = np.random.normal(loc=x)
                 self._set_prob_vars(prob, x_proposed, var_to_index_dict)
-                val_proposed = prob.get_value(penalty_coeff, vectorize=False)
+                val_proposed = -prob.get_value(penalty_coeff, vectorize=False)
 
                 # define acceptance probability
                 log_p_proposed = val_proposed
@@ -506,6 +517,11 @@ class Solver(SolverBase):
 
 
 class RobotSolverOSQP(RobotSolverOSQPBase):
+    def __init__(self, method):
+        super().__init__()
+        self.method = method
+        self._save_init_kwargs(dict(method=method))
+
     # @profile
     def _solve_opt_prob(
         self,
@@ -641,7 +657,7 @@ class RobotSolverOSQP(RobotSolverOSQPBase):
         # Call the solver on this problem now that it's been constructed
         success = solv.solve(
             self._prob,
-            method="metropolis_hastings",  # "penalty_sqp",
+            method=self.method,
             tol=tol,
             verbose=verbose,
             osqp_eps_abs=self.osqp_eps_abs,

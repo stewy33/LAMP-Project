@@ -28,7 +28,8 @@ from opentamp.policy_hooks.utils.file_utils import load_config, setup_dirs, LOG_
 from opentamp.policy_hooks.run_training import argsparser
 from opentamp.policy_hooks.utils.load_agent import *
 import opentamp.policy_hooks.robodesk.hyp as hyp
-import opentamp.policy_hooks.robodesk.desk_prob as prob
+
+# import opentamp.policy_hooks.robodesk.desk_prob as prob
 
 
 # def stepSimulation(t_limit=None, delay=0.):
@@ -47,6 +48,8 @@ import opentamp.policy_hooks.robodesk.desk_prob as prob
 #         if delay > 0: time.sleep(delay)
 
 if __name__ == "__main__":
+    method = "penalty_sqp"  # "metropolis_hastings"
+
     args = argsparser()
     args.config = "opentamp.policy_hooks.robodesk.hyp"
     args.render = True
@@ -83,7 +86,7 @@ if __name__ == "__main__":
     # const.EEREACHABLE_ROT_COEFF = 8e-3
     bt_ll.DEBUG = True
     openrave_bodies = None
-    domain_fname = "project/right_desk.domain"  # "simulation/move_to_grasp.domain"
+    domain_fname = "project/right_desk.domain"
     prob = "project/robodesk_prob.prob"
     d_c = main.parse_file_to_dict(domain_fname)
     domain = parse_domain_config.ParseDomainConfig.parse(d_c)
@@ -184,10 +187,11 @@ if __name__ == "__main__":
             #'(Near upright_block off_desk_target)',
             #'(InSlideDoor flat_block shelf)',
             #'(InGripperRight panda green_button)',
-            "(and (InSlideDoor upright_block shelf) (SlideDoorClose shelf_handle shelf))",
+            # "(and (InSlideDoor upright_block shelf) (SlideDoorClose shelf_handle shelf))",
         ]
 
-        goal = random.choice(goals)
+        # goal = random.choice(goals)
+        goal = "(NearGripperRight panda green_button)"
         goal_info = []
         goal_str = goal.strip()[1:-1]
         if goal_str.startswith("and"):
@@ -200,7 +204,7 @@ if __name__ == "__main__":
         print("SOLVING:", goal, goal_info)
 
         print("CONSISTENT?", problem.init_state.is_consistent())
-        solver = RobotSolverOSQP()
+        solver = RobotSolverOSQP(method=method)
 
         plan, descr = p_mod_abs(
             hls,
@@ -216,7 +220,6 @@ if __name__ == "__main__":
         if type(plan) is str or plan is None:
             sucs.append([goal_info[0][0], "OPT FAIL"])
             continue
-        # import ipdb; ipdb.set_trace()
 
         if visual:
             agent.add_viewer()
@@ -248,6 +251,3 @@ if __name__ == "__main__":
         for item in sucs:
             print(item)
         print("------------\n\n")
-        import ipdb
-
-        ipdb.set_trace()

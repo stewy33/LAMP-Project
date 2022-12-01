@@ -1,7 +1,7 @@
 import opentamp
 from opentamp.envs import MJCEnv
 import itertools
-import policy_hooks.namo.arm_prob as prob
+import opentamp.policy_hooks.namo.arm_prob as prob
 import os
 
 prob.NUM_OBJS = 2
@@ -11,10 +11,10 @@ prob.N_GRASPS = 4
 prob.n_aux = 0
 prob.END_TARGETS = prob.END_TARGETS[:8]
 prob.domain_file = "../domains/namo_domain/namo_current_arm.domain"
-from pma.namo_arm_solver import *
-from pma.hl_solver import *
-from pma.pr_graph import *
-from pma import backtrack_ll_solver_gurobi as bt_ll
+from opentamp.pma.namo_solver import *
+from opentamp.pma.hl_solver import *
+from opentamp.pma.pr_graph import *
+from opentamp.pma import backtrack_ll_solver_gurobi as bt_ll
 from opentamp.policy_hooks.utils.load_task_definitions import parse_state
 from opentamp.core.util_classes.namo_grip_predicates import angle_diff
 import pybullet as P
@@ -115,7 +115,7 @@ import ipdb
 
 ipdb.set_trace()
 
-fpath = os.getcwd() + '/opentamp'
+fpath = os.getcwd() + "/opentamp"
 view = False  # True
 im_dims = (128, 128)
 act_jnts = ["joint1", "joint2", "wrist", "left_finger_joint", "right_finger_joint"]
