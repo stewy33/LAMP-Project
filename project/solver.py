@@ -8,6 +8,7 @@ import scipy
 
 from sco_py.sco_osqp.prob import Prob
 from sco_py.sco_osqp.solver import Solver as SolverBase
+from sco_py.expr import CompExpr, EqExpr
 import sco_py.sco_osqp.osqp_utils as osqp_utils
 
 from opentamp.pma.backtrack_ll_solver_OSQP import MAX_PRIORITY
@@ -229,22 +230,35 @@ class Solver(SolverBase):
                 adaptive_rho=adaptive_rho,
                 sigma=sigma,
             )
+        elif method == "gradient_descent":
+            return self._gradient_descent(
+                prob,
+                verbose=verbose,
+                osqp_eps_abs=osqp_eps_abs,
+                osqp_eps_rel=osqp_eps_rel,
+                osqp_max_iter=osqp_max_iter,
+                rho=rho,
+                adaptive_rho=adaptive_rho,
+                sigma=sigma,
+            )
+
+        elif method == "mala":
+            return self._mala(
+                prob,
+                verbose=verbose,
+                osqp_eps_abs=osqp_eps_abs,
+                osqp_eps_rel=osqp_eps_rel,
+                osqp_max_iter=osqp_max_iter,
+                rho=rho,
+                adaptive_rho=adaptive_rho,
+                sigma=sigma,
+            )
         else:
             raise Exception("This method is not supported.")
 
     def _set_prob_vars(self, prob, x, var_to_index_dict):
         osqp_utils.update_osqp_vars(var_to_index_dict, x)
         prob._update_vars()
-
-    def _grad(self, prob, penalty_coeff):
-        var_grads = {osqp_var: 0.0 for osqp_var in prob._osqp_vars}
-        for bound_expr in prob._quad_obj_exprs + prob._nonquad_obj_exprs:
-            var_grads[bound_expr] += bound_expr.expr.grad(bound_expr.var.get_value())
-        for bound_expr in prob._nonlin_cnt_exprs:
-            cnt_vio = self._compute_cnt_violation(bound_expr)
-            breakpoint()
-        #    value += penalty_coeff * np.sum(cnt_vio)
-        #    var_grads[bound_expr] += penalty_coeff * bound_expr.expr.grad(bound_expr.var.get_value())
 
     # @profile
     def _metropolis_hastings(
@@ -273,8 +287,7 @@ class Solver(SolverBase):
                 - np.sum((x - mu) ** 2) / (2 * sigma**2)
             )
 
-        penalty_coeff = self.initial_penalty_coeff
-        print(penalty_coeff)
+        # penalty_coeff = self.initial_penalty_coeff
         penalty_coeff = 10
         for i in range(self.max_merit_coeff_increases):
 
@@ -309,6 +322,132 @@ class Solver(SolverBase):
             penalty_coeff *= self.merit_coeff_increase_ratio
 
         return False
+
+    def _grad(self, prob, penalty_coeff, var_to_index_dict):
+        gradient = np.zeros(len(prob._osqp_vars))
+
+        # Differentiate cost function
+        for bound_expr in prob._quad_obj_exprs + prob._nonquad_obj_exprs:
+            x = bound_expr.var.get_value()
+            expr_grad = bound_expr.expr.grad(x)
+
+            for var, g in zip(bound_expr.var._osqp_vars.squeeze(), expr_grad):
+                gradient[var_to_index_dict[var]] += g
+
+        for bound_expr in prob._nonlin_cnt_exprs:
+            x = bound_expr.var.get_value()
+            # No gradient if constraint is satisfied
+            if bound_expr.expr.eval(x):
+                continue
+
+            expr_y = bound_expr.expr.expr.eval(x)
+            expr_grad = bound_expr.expr.expr.grad(x)
+
+            if isinstance(bound_expr.expr, EqExpr):
+                expr_grad = np.sign(expr_y - bound_expr.expr.val) * expr_grad
+            else:
+                raise NotImplementedError()
+
+            expr_grad = penalty_coeff * expr_grad.sum(axis=0)
+            for var, g in zip(bound_expr.var._osqp_vars.squeeze(1), expr_grad):
+                gradient[var_to_index_dict[var]] += g
+
+        # if prob.get_max_cnt_violation() > self.cnt_tolerance:
+        #    breakpoint()
+        #    cnt_vio = self._compute_cnt_violation(bound_expr)
+        #    value += penalty_coeff * np.sum(cnt_vio)
+        #    var_grads[bound_expr] += penalty_coeff * bound_expr.expr.grad(bound_expr.var.get_value())
+
+        return gradient
+
+    def _gradient_descent(
+        self,
+        prob,
+        verbose=False,
+        osqp_eps_abs=osqp_utils.DEFAULT_EPS_ABS,
+        osqp_eps_rel=osqp_utils.DEFAULT_EPS_REL,
+        osqp_max_iter=osqp_utils.DEFAULT_MAX_ITER,  # 100_000
+        rho: float = osqp_utils.DEFAULT_RHO,
+        adaptive_rho: bool = osqp_utils.DEFAULT_ADAPTIVE_RHO,
+        sigma: float = osqp_utils.DEFAULT_SIGMA,
+    ):
+        var_to_index_dict = {osqp_var: i for i, osqp_var in enumerate(prob._osqp_vars)}
+        lr = 1e-2
+
+        penalty_coeff = 10
+
+        x = np.zeros(len(prob._osqp_vars))
+        self._set_prob_vars(prob, x, var_to_index_dict)
+        val = -prob.get_value(penalty_coeff, vectorize=False)
+        grad = self._grad(prob, penalty_coeff, var_to_index_dict)
+
+        for i in tqdm.trange(osqp_max_iter):
+            if i % 50 == 0:
+                print(prob.get_max_cnt_violation(), self.cnt_tolerance, val)
+
+            x = x - lr * grad
+            self._set_prob_vars(prob, x, var_to_index_dict)
+            val = -prob.get_value(penalty_coeff, vectorize=False)
+            grad = self._grad(prob, penalty_coeff, var_to_index_dict)
+
+            # If the solve succeeded
+            if prob.get_max_cnt_violation() < self.cnt_tolerance:
+                prob._callback()  # TODO: Modify to get the visualizer in a better spot.
+                return True
+
+    def _mala(
+        self,
+        prob,
+        verbose=False,
+        osqp_eps_abs=osqp_utils.DEFAULT_EPS_ABS,
+        osqp_eps_rel=osqp_utils.DEFAULT_EPS_REL,
+        osqp_max_iter=osqp_utils.DEFAULT_MAX_ITER,  # 100_000
+        rho: float = osqp_utils.DEFAULT_RHO,
+        adaptive_rho: bool = osqp_utils.DEFAULT_ADAPTIVE_RHO,
+        sigma: float = osqp_utils.DEFAULT_SIGMA,
+    ):
+        var_to_index_dict = {osqp_var: i for i, osqp_var in enumerate(prob._osqp_vars)}
+        burn_in = 500
+        tau = 1e-2
+
+        penalty_coeff = 10
+        accepted = 0
+
+        x = np.zeros(len(prob._osqp_vars))
+        self._set_prob_vars(prob, x, var_to_index_dict)
+        val = -prob.get_value(penalty_coeff, vectorize=False)
+        grad = self._grad(prob, penalty_coeff, var_to_index_dict)
+
+        for i in tqdm.trange(osqp_max_iter):
+            if i % 50 == 0:
+                print(prob.get_max_cnt_violation(), self.cnt_tolerance, accepted)
+
+            mean = x - tau * grad
+            std = np.sqrt(2 * tau)
+            z = mean + std * np.random.randn(*x.shape)
+
+            self._set_prob_vars(prob, z, var_to_index_dict)
+            new_val = -prob.get_value(penalty_coeff, vectorize=False)
+            new_grad = self._grad(prob, penalty_coeff, var_to_index_dict)
+
+            # define acceptance probability
+            num = new_val - np.sum((x - z + tau * new_grad) ** 2) / (4 * tau)
+            den = val - np.sum((z - x + tau * grad) ** 2) / (4 * tau)
+            log_A = num - den
+
+            # accept or reject
+            if np.random.uniform() <= min(1, np.exp(log_A)):
+                x = z
+                val = new_val
+                grad = new_grad
+                accepted += 1
+            else:
+                self._set_prob_vars(prob, x, var_to_index_dict)
+
+            # If the solve succeeded
+            if i > burn_in and prob.get_max_cnt_violation() < self.cnt_tolerance:
+                prob._callback()  # TODO: Modify to get the visualizer in a better spot.
+                return True
 
     # @profile
     def _penalty_sqp(

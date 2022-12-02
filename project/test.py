@@ -48,7 +48,8 @@ import opentamp.policy_hooks.robodesk.hyp as hyp
 #         if delay > 0: time.sleep(delay)
 
 if __name__ == "__main__":
-    method = "penalty_sqp"  # "metropolis_hastings"
+    # Method is one of "metropolis_hastings", "gradient descent", "mala", or "penalty_sqp"
+    method = "gradient_descent"
 
     args = argsparser()
     args.config = "opentamp.policy_hooks.robodesk.hyp"
