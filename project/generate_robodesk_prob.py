@@ -10,7 +10,7 @@ import opentamp.core.util_classes.common_constants as const
 
 # SEED = 1234
 NUM_PROBS = 1
-filename = "project/robodesk_prob.prob"
+filename = "project/move_to_grasp.prob"
 GOAL = "(RobotAt panda robot_end_pose)"
 
 

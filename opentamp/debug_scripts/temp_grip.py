@@ -1,7 +1,7 @@
 import opentamp
 from opentamp.envs import MJCEnv
 import os
-import policy_hooks.namo.door_prob as prob
+import opentamp.policy_hooks.namo.door_prob as prob
 
 prob.NUM_OBJS = 2
 prob.FIX_TARGETS = True
@@ -10,17 +10,17 @@ prob.N_GRASPS = 4
 prob.n_aux = 0
 prob.END_TARGETS = prob.END_TARGETS[:8]
 prob.domain_file = "../domains/namo_domain/namo_current_door.domain"
-from pma.namo_door_solver import *
-from pma.hl_solver import *
-from pma.pr_graph import *
-from pma import backtrack_ll_solver_gurobi as bt_ll
+from opentamp.pma.namo_door_solver import *
+from opentamp.pma.hl_solver import *
+from opentamp.pma.pr_graph import *
+from opentamp.pma import backtrack_ll_solver_gurobi as bt_ll
 from opentamp.policy_hooks.utils.load_task_definitions import parse_state
 from opentamp.policy_hooks.utils.policy_solver_utils import *
 from opentamp.core.util_classes.namo_grip_predicates import angle_diff
 import pybullet as P
 from opentamp.core.util_classes.openrave_body import *
 
-NAMO_XML = os.getcwd() + '/opentamp' + "/robot_info/lidar_namo.xml"
+NAMO_XML = os.getcwd() + "/opentamp" + "/robot_info/lidar_namo.xml"
 
 plans = prob.get_plans(use_tf=True)
 plan = list(plans[0].values())[0]
@@ -98,7 +98,7 @@ import ipdb
 ipdb.set_trace()
 
 view = True
-fpath = os.getcwd() + '/opentamp'
+fpath = os.getcwd() + "/opentamp"
 im_dims = (256, 256)
 wall_dims = OpenRAVEBody.get_wall_dims("closet")
 config = {

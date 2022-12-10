@@ -16,6 +16,10 @@ from opentamp.pma.robot_solver import RobotSolverOSQP as RobotSolverOSQPBase
 
 
 class Solver(SolverBase):
+    def __init__(self, logger):
+        super().__init__()
+        self.logger = logger
+
     def solve(
         self,
         prob: Prob,
@@ -42,14 +46,17 @@ class Solver(SolverBase):
             self.cnt_tolerance = tol
 
         # Diagnostic info
-        print(f"Linear objs: {len(prob._osqp_lin_objs)}")
-        print(f"Quadratic objs: {len(prob._quad_obj_exprs)}")
-        print(f"Nonquadratic objs: {len(prob._nonquad_obj_exprs)}")
-        print(f"Linear constraints: {len(prob._osqp_lin_cnt_exprs)}")
-        print(f"Nonlinear constraints: {len(prob._nonlin_cnt_exprs)}")
+        if True:
+            print(f"Linear objs: {len(prob._osqp_lin_objs)}")
+            print(f"Quadratic objs: {len(prob._quad_obj_exprs)}")
+            print(f"Nonquadratic objs: {len(prob._nonquad_obj_exprs)}")
+            print(f"Linear constraints: {len(prob._osqp_lin_cnt_exprs)}")
+            print(f"Nonlinear constraints: {len(prob._nonlin_cnt_exprs)}")
+
+        start_time = time.time()
 
         if method == "penalty_sqp":
-            return self._penalty_sqp(
+            res = self._penalty_sqp(
                 prob,
                 verbose=verbose,
                 osqp_eps_abs=osqp_eps_abs,
@@ -60,107 +67,41 @@ class Solver(SolverBase):
                 sigma=sigma,
             )
         elif method == "metropolis_hastings":
-            return self._metropolis_hastings(
+            res = self._metropolis_hastings(
                 prob,
                 verbose=verbose,
-                osqp_eps_abs=osqp_eps_abs,
-                osqp_eps_rel=osqp_eps_rel,
-                osqp_max_iter=osqp_max_iter,
-                rho=rho,
-                adaptive_rho=adaptive_rho,
-                sigma=sigma,
             )
         elif method == "gradient_descent":
-            return self._gradient_descent(prob, verbose=False)
+            res = self._gradient_descent(prob, verbose=False)
+        elif method == "ula":
+            res = self._gradient_descent(prob, langevin=True, verbose=False)
         elif method == "mala":
-            return self._mala(
+            res = self._mala(
                 prob,
                 verbose=verbose,
             )
         elif method == "hmc":
-            return self._hmc(
+            res = self._hmc(
                 prob,
                 verbose=verbose,
-                osqp_eps_abs=osqp_eps_abs,
-                osqp_eps_rel=osqp_eps_rel,
-                osqp_max_iter=osqp_max_iter,
-                rho=rho,
-                adaptive_rho=adaptive_rho,
-                sigma=sigma,
             )
         else:
             raise Exception("This method is not supported.")
+
+        val, val_info = self._get_value(prob, penalty_coeff=0)
+        print(f"Final cost: {val:.3f}")
+        self.logger.data["trajectory_cost"] = val_info
+        self.logger.data["solve_time_seconds"] = time.time() - start_time
+        return res
 
     def _set_prob_vars(self, prob, x, var_to_index_dict):
         osqp_utils.update_osqp_vars(var_to_index_dict, x)
         prob._update_vars()
 
-    # @profile
-    def _metropolis_hastings(
-        self,
-        prob,
-        verbose=False,
-        osqp_eps_abs=osqp_utils.DEFAULT_EPS_ABS,
-        osqp_eps_rel=osqp_utils.DEFAULT_EPS_REL,
-        osqp_max_iter=osqp_utils.DEFAULT_MAX_ITER,  # 100_000
-        rho: float = osqp_utils.DEFAULT_RHO,
-        adaptive_rho: bool = osqp_utils.DEFAULT_ADAPTIVE_RHO,
-        sigma: float = osqp_utils.DEFAULT_SIGMA,
-    ):
-        """
-        Run Metropolis-Hastings.
-        Returns true if a feasible solution is returned.
-        """
-
-        var_to_index_dict = {osqp_var: i for i, osqp_var in enumerate(prob._osqp_vars)}
-        burn_in = 5_000
-
-        def logpdf(x, mu, sigma=1):
-            return (
-                -0.5 * np.log(2 * np.pi) * x.size
-                - np.log(sigma)
-                - np.sum((x - mu) ** 2) / (2 * sigma**2)
-            )
-
-        # penalty_coeff = self.initial_penalty_coeff
-        penalty_coeff = 10
-        for i in range(self.max_merit_coeff_increases):
-
-            x = np.zeros(len(prob._osqp_vars))
-            self._set_prob_vars(prob, x, var_to_index_dict)
-            val = -prob.get_value(penalty_coeff, vectorize=False)
-            # grad = self._grad(prob, penalty_coeff)
-            for j in tqdm.trange(osqp_max_iter):
-                # Sample from proposal distribution and get objective value
-                x_proposed = np.random.normal(loc=x)
-                self._set_prob_vars(prob, x_proposed, var_to_index_dict)
-                val_proposed = -prob.get_value(penalty_coeff, vectorize=False)
-
-                # define acceptance probability
-                log_p_proposed = val_proposed
-                log_p_sampled = val
-                log_q_proposed = logpdf(x_proposed, mu=x)
-                log_q_sampled = logpdf(x, mu=x_proposed)
-                log_A = log_p_proposed + log_q_sampled - log_p_sampled - log_q_proposed
-
-                # Accept or reject and do appropriate setting of variables
-                if np.random.uniform() < min(1, np.exp(log_A)):
-                    x = x_proposed
-                else:
-                    self._set_prob_vars(prob, x, var_to_index_dict)
-
-                # If the solve succeeded
-                if i > burn_in and prob.get_max_cnt_violation() < self.cnt_tolerance:
-                    prob._callback()  # TODO: Modify to get the visualizer in a better spot.
-                    return True
-
-            penalty_coeff *= self.merit_coeff_increase_ratio
-
-        return False
-
     def _get_value(self, prob, penalty_coeff, linear_penalty=False):
-        if len(prob._osqp_lin_objs) > 0:
-            raise NotImplementedError("Evaluating linear objectives not implemented.")
+        lin_value = 0.0
+        for lin_obj in prob._osqp_lin_objs:
+            lin_value += lin_obj.osqp_var.val * lin_obj.coeff
 
         quad_value = 0.0
         for bound_expr in prob._quad_obj_exprs:
@@ -168,14 +109,15 @@ class Solver(SolverBase):
 
         nonquad_value = 0.0
         for bound_expr in prob._nonquad_obj_exprs:
+            raise NotImplementedError("Nonquadratic objectives not supported yet.")
             nonquad_value += np.sum(bound_expr.eval())
 
         nonlin_penalty_value = 0.0
         for bound_expr in prob._nonlin_cnt_exprs:
             cnt_vio = prob._compute_cnt_violation(bound_expr)
-            nonlin_penalty_value += penalty_coeff * np.sum(cnt_vio)
+            nonlin_penalty_value += np.sum(cnt_vio)
 
-        value = quad_value + nonquad_value + nonlin_penalty_value
+        value = quad_value + nonquad_value + penalty_coeff * nonlin_penalty_value
         info = dict(
             total=value,
             quad_obj=quad_value,
@@ -188,9 +130,9 @@ class Solver(SolverBase):
             for cnt in prob._osqp_lin_cnt_exprs:
                 y = np.dot(np.array([v.val for v in cnt.osqp_vars]), cnt.coeffs)
                 cnt_vio = max((y - cnt.ub).item(), (cnt.lb - y).item(), 0)
-                lin_penalty_value += penalty_coeff * cnt_vio
+                lin_penalty_value += cnt_vio
 
-            value += lin_penalty_value
+            value += penalty_coeff * lin_penalty_value
             info["total"] = value
             info["lin_cnt_penalty"] = lin_penalty_value
 
@@ -281,7 +223,18 @@ class Solver(SolverBase):
 
         return A_mat, l_vec, u_vec
 
-    def _solve_osqp_program(self, P, q, A, l, u, verbose=False):
+    def _solve_osqp_program(
+        self,
+        P,
+        q,
+        A,
+        l,
+        u,
+        verbose=False,
+        eps_abs=osqp_utils.DEFAULT_EPS_ABS,
+        eps_rel=osqp_utils.DEFAULT_EPS_REL,
+        max_iter=osqp_utils.DEFAULT_MAX_ITER,
+    ):
         m = osqp.OSQP()
         m.setup(
             P=scipy.sparse.csc_matrix(P),
@@ -291,25 +244,93 @@ class Solver(SolverBase):
             sigma=osqp_utils.DEFAULT_SIGMA,
             l=l,
             u=u,
-            eps_abs=osqp_utils.DEFAULT_EPS_ABS,
-            eps_rel=osqp_utils.DEFAULT_EPS_REL,
+            eps_abs=eps_abs,
+            eps_rel=eps_rel,
             delta=1e-07,
             polish=False,
             adaptive_rho=osqp_utils.DEFAULT_ADAPTIVE_RHO,
             warm_start=True,
             verbose=False,
-            max_iter=osqp_utils.DEFAULT_MAX_ITER,
+            max_iter=max_iter,
         )
         solve_res = m.solve()
         if solve_res.info.status_val == -2 and verbose:
             print(
                 "ERROR! OSQP Solver hit max iteration limit. Either reduce your tolerances or increase the max iterations!"
             )
-        return solve_res.x
+        return solve_res.x, solve_res
 
-    def _gradient_descent(self, prob, verbose=False):
+    def _beta_schedule(self, initial_beta, final_beta, num_iters):
+        """
+        Helper function to anneal the beta parameter for Metropolis-Hastings.
+        """
+        if final_beta is None:
+            return np.ones(num_iters) * initial_beta
+        return (initial_beta / final_beta) ** (np.arange(num_iters) / num_iters - 1)
+
+    def _metropolis_hastings(self, prob, verbose=False):
+        """
+        Run Metropolis-Hastings.
+        Returns true if a feasible solution is returned.
+        """
+
         lr = 1e-3
         penalty_coeff = 1
+        burn_in = 0
+        initial_beta = 5
+        final_beta = None  # 100
+
+        # Setup the linear constraint matrix
+        var_to_index_dict = {osqp_var: i for i, osqp_var in enumerate(prob._osqp_vars)}
+        A_mat, l_vec, u_vec = self._get_linear_cnt_matrix(prob, var_to_index_dict)
+
+        # Initialize problem variables to zero
+        x = np.zeros(len(prob._osqp_vars))
+        self._set_prob_vars(prob, x, var_to_index_dict)
+        val, val_info = self._get_value(prob, penalty_coeff)
+
+        beta_schedule = self._beta_schedule(initial_beta, final_beta, 100)
+        for i, beta in tqdm.tqdm(enumerate(beta_schedule)):
+            # Sample from proposal distribution and get objective value
+            new_x = np.random.normal(loc=x, scale=lr / beta)
+            self._set_prob_vars(prob, new_x, var_to_index_dict)
+            new_val, new_val_info = self._get_value(prob, penalty_coeff)
+
+            x, solve_res = self._solve_osqp_program(
+                P=lr / 2 * np.eye(len(x)),
+                q=-lr * x,
+                A=A_mat,
+                l=l_vec,
+                u=u_vec,
+                verbose=verbose,
+                max_iter=2000,
+            )
+
+            # Accept or reject and do appropriate setting of variables.
+            # We can drop log_q_proposed - log_q_current because the symmetric proposal
+            # density would subtract out to zero.
+            log_A = new_val - val
+            if np.log(np.random.uniform()) < min(0, log_A):
+                x = new_x
+            else:
+                self._set_prob_vars(prob, x, var_to_index_dict)
+
+            if verbose and i % 1 == 0:
+                print(self._get_max_cnt_violation(prob), self.cnt_tolerance, lr)
+                print(val_info)
+
+            # Solve succeeded
+            if i > burn_in and self._get_max_cnt_violation(prob) < self.cnt_tolerance:
+                prob._callback()
+                return True
+
+        return False
+
+    def _gradient_descent(self, prob, langevin=False, verbose=False):
+        lr = 1e-2
+        penalty_coeff = 1
+        burn_in = 5
+        beta = 1
 
         # Setup the linear constraint matrix
         var_to_index_dict = {osqp_var: i for i, osqp_var in enumerate(prob._osqp_vars)}
@@ -319,29 +340,55 @@ class Solver(SolverBase):
         x = np.zeros(len(prob._osqp_vars))
         self._set_prob_vars(prob, x, var_to_index_dict)
 
-        for i in tqdm.trange(100):
+        values = []
+        gradients = []
+        iterates = []
+        pbar = tqdm.trange(burn_in + 100)
+        for i in pbar:
             val, val_info = self._get_value(prob, penalty_coeff, linear_penalty=True)
             grad, grad_info = self._grad(
                 prob, penalty_coeff, var_to_index_dict, linear_penalty=False
             )
 
-            x = self._solve_osqp_program(
-                P=lr * np.eye(len(x)),
-                q=grad - lr * x,
+            iterates.append(x)
+            values.append(val)
+            gradients.append(grad)
+
+            unprojected = x - lr * grad
+            if langevin:
+                unprojected += np.sqrt(2 * lr / beta) * np.random.randn(len(x))
+
+            x, solve_res = self._solve_osqp_program(
+                P=np.eye(len(x)),
+                q=-unprojected,
                 A=A_mat,
                 l=l_vec,
                 u=u_vec,
                 verbose=verbose,
+                # eps_abs=self.cnt_tolerance,
+                # eps_rel=1,
+                max_iter=2000,
             )
             self._set_prob_vars(prob, x, var_to_index_dict)
 
+            pbar.set_postfix(
+                {
+                    "val": val,
+                    "grad_norm": np.linalg.norm(grad),
+                    "cnt_violation": self._get_max_cnt_violation(prob),
+                }
+            )
             if verbose and i % 1 == 0:
                 print(self._get_max_cnt_violation(prob), self.cnt_tolerance, lr)
                 print(val_info)
 
             # Solve succeeded
-            if self._get_max_cnt_violation(prob) < self.cnt_tolerance:
+            if i > burn_in and self._get_max_cnt_violation(prob) < self.cnt_tolerance:
                 prob._callback()
+                self.logger.data["iterates"] = iterates
+                self.logger.data["values"] = values
+                self.logger.data["gradients"] = gradients
+                self.logger.data["num_iterations"] = i + 1
                 return True
 
     def _mala(
@@ -349,8 +396,11 @@ class Solver(SolverBase):
         prob,
         verbose=False,
     ):
-        lr = 1e-3
+        lr = 1e-2
+        burn_in = 5
         penalty_coeff = 1
+        beta = 5
+        accepted = 0
 
         # Setup the linear constraint matrix
         var_to_index_dict = {osqp_var: i for i, osqp_var in enumerate(prob._osqp_vars)}
@@ -359,86 +409,70 @@ class Solver(SolverBase):
         # Initialize problem variables to zero
         x = np.zeros(len(prob._osqp_vars))
         self._set_prob_vars(prob, x, var_to_index_dict)
+        val, val_info = self._get_value(prob, penalty_coeff, linear_penalty=True)
+        grad, grad_info = self._grad(
+            prob, penalty_coeff, var_to_index_dict, linear_penalty=False
+        )
 
-        for i in tqdm.trange(100):
-            val, val_info = self._get_value(prob, penalty_coeff, linear_penalty=True)
-            grad, grad_info = self._grad(
-                prob, penalty_coeff, var_to_index_dict, linear_penalty=False
+        pbar = tqdm.trange(burn_in + 100)
+        for i in pbar:
+            unprojected = (
+                x - lr * grad + np.sqrt(2 * lr / beta) * np.random.randn(*x.shape)
             )
-
-            x = self._solve_osqp_program(
-                P=lr * np.eye(len(x)),
-                q=grad - lr * x,
+            new_x, solve_res = self._solve_osqp_program(
+                P=np.eye(len(x)),
+                q=-unprojected,
                 A=A_mat,
                 l=l_vec,
                 u=u_vec,
                 verbose=verbose,
+                max_iter=2000,
             )
-            self._set_prob_vars(prob, x, var_to_index_dict)
 
-            if verbose and i % 1 == 0:
-                print(self._get_max_cnt_violation(prob), self.cnt_tolerance, lr)
-                print(val_info)
+            self._set_prob_vars(prob, new_x, var_to_index_dict)
+            new_val, new_val_info = self._get_value(
+                prob, penalty_coeff, linear_penalty=True
+            )
+            new_grad, new_grad_info = self._grad(
+                prob, penalty_coeff, var_to_index_dict, linear_penalty=False
+            )
 
-            # Solve succeeded
-            if self._get_max_cnt_violation(prob) < self.cnt_tolerance:
-                prob._callback()
-                return True
-
-        # Finish redacting this later
-        var_to_index_dict = {osqp_var: i for i, osqp_var in enumerate(prob._osqp_vars)}
-        burn_in = 500
-        tau = 1e-2
-
-        penalty_coeff = 10
-        accepted = 0
-
-        x = np.zeros(len(prob._osqp_vars))
-        self._set_prob_vars(prob, x, var_to_index_dict)
-        val = -prob.get_value(penalty_coeff, vectorize=False)
-        grad = self._grad(prob, penalty_coeff, var_to_index_dict)
-
-        for i in tqdm.trange(osqp_max_iter):
-            if i % 50 == 0:
-                print(prob.get_max_cnt_violation(), self.cnt_tolerance, accepted)
-
-            mean = x - tau * grad
-            std = np.sqrt(2 * tau)
-            z = mean + std * np.random.randn(*x.shape)
-
-            self._set_prob_vars(prob, z, var_to_index_dict)
-            new_val = -prob.get_value(penalty_coeff, vectorize=False)
-            new_grad = self._grad(prob, penalty_coeff, var_to_index_dict)
-
-            # define acceptance probability
-            num = new_val - np.sum((x - z + tau * new_grad) ** 2) / (4 * tau)
-            den = val - np.sum((z - x + tau * grad) ** 2) / (4 * tau)
+            # Define acceptance probability. We negate the values since we are
+            # minimizing, or equivalently, maximizing the negative of the value.
+            num = -new_val - np.sum((x - (new_x - lr * new_grad)) ** 2) / (
+                4 * lr / beta
+            )
+            den = -val - np.sum((new_x - (x - lr * grad)) ** 2) / (4 * lr / beta)
             log_A = num - den
 
             # accept or reject
-            if np.random.uniform() <= min(1, np.exp(log_A)):
-                x = z
-                val = new_val
-                grad = new_grad
+            if np.log(np.random.uniform()) <= min(0, log_A):
+                x = new_x
+                val, val_info = new_val, new_val_info
+                grad, grad_info = new_grad, new_grad_info
                 accepted += 1
             else:
                 self._set_prob_vars(prob, x, var_to_index_dict)
 
+            if verbose and i % 5 == 0:
+                print(
+                    self._get_max_cnt_violation(prob),
+                    self.cnt_tolerance,
+                    val,
+                    accepted / (i + 1),
+                )
+                print(val_info)
+            pbar.set_postfix_str(f"val: {val:.3f}, acc: {accepted / (i + 1):.3f}")
+
             # If the solve succeeded
             if i > burn_in and prob.get_max_cnt_violation() < self.cnt_tolerance:
-                prob._callback()  # TODO: Modify to get the visualizer in a better spot.
+                prob._callback()
                 return True
 
     def _hmc(
         self,
         prob,
         verbose=False,
-        osqp_eps_abs=osqp_utils.DEFAULT_EPS_ABS,
-        osqp_eps_rel=osqp_utils.DEFAULT_EPS_REL,
-        osqp_max_iter=osqp_utils.DEFAULT_MAX_ITER,  # 100_000
-        rho: float = osqp_utils.DEFAULT_RHO,
-        adaptive_rho: bool = osqp_utils.DEFAULT_ADAPTIVE_RHO,
-        sigma: float = osqp_utils.DEFAULT_SIGMA,
     ):
         var_to_index_dict = {osqp_var: i for i, osqp_var in enumerate(prob._osqp_vars)}
         burn_in = 500
@@ -493,7 +527,110 @@ class Solver(SolverBase):
 
             # If the solve succeeded
             if i > burn_in and prob.get_max_cnt_violation() < self.cnt_tolerance:
-                prob._callback()  # TODO: Modify to get the visualizer in a better spot.
+                prob._callback()
+                return True
+        return False
+
+    def _qmh(
+        self,
+        prob,
+        verbose=False,
+    ):
+        lr = 1e-3
+        burn_in = 0
+        penalty_coeff = 1
+        beta = 10
+        accepted = 0
+
+        n = len(prob._osqp_vars)
+
+        # Setup the linear constraint matrix
+        var_to_index_dict = {osqp_var: i for i, osqp_var in enumerate(n)}
+        A_mat, l_vec, u_vec = self._get_linear_cnt_matrix(prob, var_to_index_dict)
+
+        # Set up empty constraints which will be filled with trust regions
+        A_mat = np.concatenate([A_mat, np.zeros((n, n))])
+        l_vec = np.concatenate([l_vec, np.zeros(n)])
+        u_vec = np.concatenate([u_vec, np.zeros(n)])
+
+        # Set up the quadratic objective matrix
+        P_mat = np.zeros((n, n))
+        for quad_obj in prob._osqp_quad_objs:
+            for i in range(quad_obj.coeffs.shape[0]):
+                idx2 = var_to_index_dict[quad_obj.osqp_vars1[i]]
+                idx1 = var_to_index_dict[quad_obj.osqp_vars2[i]]
+                if idx1 > idx2:
+                    P_mat[idx2, idx1] += 0.5 * quad_obj.coeffs[i]
+                elif idx1 < idx2:
+                    P_mat[idx1, idx2] += 0.5 * quad_obj.coeffs[i]
+                else:
+                    P_mat[idx1, idx2] += quad_obj.coeffs[i]
+        # Alternatively to trust region, could alter problem like so:
+        # P_mat += tau * np.eye(n)
+        # q_vec = -x
+
+        # Initialize problem variables to zero
+        x = np.zeros(n)
+        self._set_prob_vars(prob, x, var_to_index_dict)
+        val, val_info = self._get_value(prob, penalty_coeff, linear_penalty=True)
+        grad, grad_info = self._grad(
+            prob, penalty_coeff, var_to_index_dict, linear_penalty=False
+        )
+
+        pbar = tqdm.trange(burn_in + 100)
+        for i in pbar:
+            # Add trust region constraints - TODO to set these!
+            for j, osqp_var in enumerate(prob._osqp_vars):
+                A_mat[-n + j, var_to_index_dict[osqp_var]] = 1.0
+                l_vec[-n + j] = osqp_var.get_lower_bound()
+                u_vec[-n + j] = osqp_var.get_upper_bound()
+
+            z, solve_res = self._solve_osqp_program(
+                P=P_mat,
+                q=grad - scipy.linalg.sqrtm(P_mat * beta) @ np.random.randn(len(x)),
+                A=A_mat,
+                l=l_vec,
+                u=u_vec,
+                verbose=verbose,
+                max_iter=2000,
+            )
+
+            self._set_prob_vars(prob, z, var_to_index_dict)
+            new_val, new_val_info = self._get_value(
+                prob, penalty_coeff, linear_penalty=True
+            )
+            new_grad, new_grad_info = self._grad(
+                prob, penalty_coeff, var_to_index_dict, linear_penalty=False
+            )
+
+            # Define acceptance probability. We negate the values since we are
+            # minimizing, or equivalently, maximizing the negative of the value.
+            num = -new_val - np.sum((x - (z - lr * new_grad)) ** 2) / (4 * lr / beta)
+            den = -val - np.sum((z - (x - lr * grad)) ** 2) / (4 * lr / beta)
+            log_A = num - den
+
+            # accept or reject
+            if np.log(np.random.uniform()) <= min(0, log_A):
+                x = z
+                val, val_info = new_val, new_val_info
+                grad, grad_info = new_grad, new_grad_info
+                accepted += 1
+            else:
+                self._set_prob_vars(prob, x, var_to_index_dict)
+
+            if verbose and i % 5 == 0:
+                print(
+                    self._get_max_cnt_violation(prob),
+                    self.cnt_tolerance,
+                    val,
+                    accepted / (i + 1),
+                )
+                print(val_info)
+            pbar.set_postfix_str(f"val: {val:.3f}, acc: {accepted / (i + 1):.3f}")
+
+            # If the solve succeeded
+            if i > burn_in and prob.get_max_cnt_violation() < self.cnt_tolerance:
+                prob._callback()
                 return True
 
 
@@ -504,10 +641,11 @@ object. Only a one line change.
 
 
 class RobotSolverOSQP(RobotSolverOSQPBase):
-    def __init__(self, method):
+    def __init__(self, method, logger):
         super().__init__()
         self.method = method
-        self._save_init_kwargs(dict(method=method))
+        self.logger = logger
+        self._save_init_kwargs(dict(method=method, logger=logger))
 
     # @profile
     def _solve_opt_prob(
@@ -633,7 +771,7 @@ class RobotSolverOSQP(RobotSolverOSQPBase):
                 )
                 tol = 1e-3
 
-        solv = Solver()
+        solv = Solver(logger=self.logger)
         solv.initial_trust_region_size = initial_trust_region_size
         if smoothing:
             solv.initial_penalty_coeff = self.smooth_penalty_coeff

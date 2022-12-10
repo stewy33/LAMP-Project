@@ -6,6 +6,9 @@ from pybullet_utils import bullet_client
 import random
 from threading import Thread
 import time
+import pickle
+import glob
+import cv2
 
 import robodesk
 
@@ -47,11 +50,25 @@ import opentamp.policy_hooks.robodesk.hyp as hyp
 #         p1.stepSimulation()
 #         if delay > 0: time.sleep(delay)
 
-if __name__ == "__main__":
-    # method is one of "metropolis_hastings", "gradient_descent", "mala", or "penalty_sqp"
-    method = "gradient_descent"
 
+class Logger:
+    def __init__(self, base_dir):
+        max_run_number = max(
+            [0] + [int(r.split("_")[-1]) for r in glob.glob(f"{base_dir}/run_*")]
+        )
+        self.dir = f"{base_dir}/run_{max_run_number + 1}"
+        self.data = {}
+
+    def save_data(self):
+        os.makedirs(self.dir, exist_ok=True)
+        with open(f"{self.dir}/log.pkl", "wb") as f:
+            pickle.dump(self.data, f)
+
+
+if __name__ == "__main__":
     args = argsparser()
+    logger = Logger(f"project/runs/{args.method}")
+
     args.config = "opentamp.policy_hooks.robodesk.hyp"
     args.render = True
 
@@ -65,30 +82,16 @@ if __name__ == "__main__":
     agent_config = load_agent(config)
     agent = build_agent(agent_config)
     env = agent.base_env
-    mjc_env = agent.mjc_env
-
-    """
-    agent.add_viewer()
-    agent.mjc_env.set_attr('panda', 'right', np.zeros(7), forward=True)
-    agent.render_viewer(env.render(resize=True))
-    agent.render_viewer(env.render(resize=True))
-    agent.render_viewer(env.render(resize=True))
-    import ipdb; ipdb.set_trace()
-    """
 
     try:
         p.disconnect()
     except Exception as e:
         print(e)
 
-    # const.NEAR_GRIP_COEFF = 5e-2
-    # const.GRASP_DIST = 0.2
-    # const.APPROACH_DIST = 0.025
-    # const.EEREACHABLE_ROT_COEFF = 8e-3
     bt_ll.DEBUG = True
     openrave_bodies = None
-    domain_fname = "project/right_desk.domain"
-    prob = "project/robodesk_prob.prob"
+    domain_fname = "project/move_to_grasp.domain"
+    prob = "project/move_to_grasp.prob"
     d_c = main.parse_file_to_dict(domain_fname)
     domain = parse_domain_config.ParseDomainConfig.parse(d_c)
     hls = FDSolver(d_c, cleanup_files=False)
@@ -107,7 +110,7 @@ if __name__ == "__main__":
     # proc1.start()
 
     sucs = []
-    N_RUNS = 50
+    N_RUNS = 1  # 50
     for run_num in range(N_RUNS):
         agent.mjc_env.reset()
 
@@ -154,45 +157,14 @@ if __name__ == "__main__":
                 params[targ].value[:, 0] = params[param].pose[:, 0]
                 params[targ].rotation[:, 0] = params[param].rotation[:, 0]
 
-        # goal = '(and (InSlideDoor ball drawer) (Stacked upright_block flat_block) (NearGripperRight panda green_button))'
-        goal = "(and (SlideDoorClose shelf_handle shelf) (Stacked upright_block flat_block) (NearGripperRight panda green_button))"
-        # goal = '(and (SlideDoorOpen drawer_handle drawer) (NearApproachRight panda upright_block))'
-        # goal = '(and (InSlideDoor upright_block shelf) (NearApproachRight panda ball))'
-        # goal = '(and (SlideDoorClose drawer_handle drawer) (InSlideDoor ball drawer))'
-        # goal = '(and (InSlideDoor ball drawer) (InSlideDoor upright_block shelf) (SlideDoorClose drawer_handle drawer) (SlideDoorClose shelf_handle shelf))'
-        # goal = '(Stacked upright_block flat_block)'
-        # goal = '(and (SlideDoorClose shelf_handle shelf) (InSlideDoor upright_block shelf))'
-        # goal = '(Lifted flat_block panda)'
-        # goal = '(Lifted upright_block panda)'
-        goal = "(Lifted ball panda)"
-        # goal = '(SlideDoorClose shelf_handle shelf)'
-        # goal = '(SlideDoorOpen drawer_handle drawer)'
-        # goal = '(InSlideDoor ball drawer)'
-        goal = "(At flat_block bin_target)"
-        # goal = '(At ball bin_target)'
-        # goal = '(InSlideDoor upright_block shelf)'
-        # goal = '(InSlideDoor flat_block shelf)'
-        # goal = '(and (At flat_block bin_target) (At upright_block off_desk_target))'
-        # goal = '(and (InSlideDoor ball drawer) (NearGripperRight panda green_button))'
-        # goal = '(NearGripperRight panda green_button)'
-        # goal = '(Lifted upright_block panda)'
-        # goal = "(NearGripperRight panda green_button)"
+        goal = "(RobotAt panda robot_end_pose)"
+        end_pose = [0.15, 0.5, 0.85]
 
-        goals = [
-            #'(Lifted upright_block panda)',
-            #'(Lifted ball panda)',
-            #'(Stacked upright_block flat_block)',
-            #'(SlideDoorClose shelf_handle shelf)',
-            #'(SlideDoorOpen drawer_handle drawer)',
-            #'(Near flat_block bin_target)',
-            #'(Near upright_block off_desk_target)',
-            #'(InSlideDoor flat_block shelf)',
-            #'(InGripperRight panda green_button)',
-            # "(and (InSlideDoor upright_block shelf) (SlideDoorClose shelf_handle shelf))",
-        ]
+        params["robot_end_pose"].value = np.array([end_pose]).T
+        params["robot_end_pose"].rotation = np.array([[0.0, 0.0, 0.0]]).T
+        # agent.mjc_env.env.physics.named.data.qpos["upright_block"][:3] = end_pose
+        # agent.mjc_env.env.physics.named.data.xpos["upright_block"][:] = end_pose
 
-        # goal = random.choice(goals)
-        goal = "(NearGripperRight panda green_button)"
         goal_info = []
         goal_str = goal.strip()[1:-1]
         if goal_str.startswith("and"):
@@ -205,7 +177,7 @@ if __name__ == "__main__":
         print("SOLVING:", goal, goal_info)
 
         print("CONSISTENT?", problem.init_state.is_consistent())
-        solver = RobotSolverOSQP(method=method)
+        solver = RobotSolverOSQP(args.method, logger)
 
         plan, descr = p_mod_abs(
             hls,
@@ -225,6 +197,10 @@ if __name__ == "__main__":
         if visual:
             agent.add_viewer()
 
+        import copy
+
+        run_results = []
+        renders = []
         panda = plan.params["panda"]
         for act in plan.actions:
             st, et = act.active_timesteps
@@ -237,12 +213,54 @@ if __name__ == "__main__":
                 grip = -0.005 * np.ones(2) if grip[0] < 0.01 else 0.07 * np.ones(2)
                 ctrl = np.r_[panda.right[:, t], grip]
                 obs, rew, done, info = agent.mjc_env.step(ctrl)
+                run_results.append(copy.deepcopy((obs, rew, done, info)))
+                renders.append(agent.mjc_env.render())
                 if "hand_image" in obs:
                     agent.render_viewer(np.r_[obs["image"], obs["hand_image"]])
                 else:
                     agent.render_viewer(obs["image"])
 
-        x = agent.get_state()
+        logger.data["plan"] = plan
+        logger.data["run_results"] = run_results
+
+        if not args.debug:
+            logger.save_data()
+
+        """from dm_control import mujoco
+
+        camera = mujoco.Camera(
+            physics=agent.mjc_env.physics,
+            height=120,
+            width=120,
+            camera_id=0,
+        )
+        camera._render_camera.distance = 1.9
+        camera._render_camera.azimuth = 90
+        camera._render_camera.elevation = -60
+        camera._render_camera.lookat[:] = [
+            0,
+            0.535,
+            1.1,
+        ]  # pylint: disable=protected-access
+
+        image = camera.render(depth=False, segmentation=False)
+        from PIL import Image
+
+        Image.fromarray(image).save("project/scene.png")"""
+
+        """images = np.stack([obs["image"] for obs, _, _, _ in run_results])
+        # images = np.stack(renders)
+        out = cv2.VideoWriter(
+            f"project/video.mp4",
+            fourcc=cv2.VideoWriter_fourcc(*"mp4v"),
+            fps=15,
+            frameSize=(images.shape[2], images.shape[1]),
+        )
+        for img in images:
+            out.write(img)
+        out.release()"""
+
+        """x = agent.get_state()
         goal_suc = [agent.parse_goal(x, g[0], g[1:]) for g in goal_info]
         print("Goal?", goal, goal_suc)
         # import ipdb; ipdb.set_trace()
@@ -251,4 +269,4 @@ if __name__ == "__main__":
         print("\n\n-----------\nALL GOALS:")
         for item in sucs:
             print(item)
-        print("------------\n\n")
+        print("------------\n\n")"""

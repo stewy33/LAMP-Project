@@ -43,7 +43,8 @@ def p_mod_abs(
     Q = PriorityQueue()
     Q.put((n0.heuristic(), n0))
     for cur_iter in range(max_iter):
-        if Q.empty(): break
+        if Q.empty():
+            break
 
         n = Q.get_nowait()[1]
         if n.is_hl_node():
@@ -54,16 +55,18 @@ def p_mod_abs(
                     print("Found impossible plan")
                 continue
 
-            c = LLSearchNode(plan=c_plan, 
-                             domain=domain,
-                             prob=n.concr_prob, 
-                             initial=n.concr_prob.initial,
-                             priority=n.priority + 1,
-                             ref_plan=n.ref_plan,
-                             expansions=n.expansions + 1,
-                             refnode=n,
-                             label=n.label,
-                             info=n.info)
+            c = LLSearchNode(
+                plan=c_plan,
+                domain=domain,
+                prob=n.concr_prob,
+                initial=n.concr_prob.initial,
+                priority=n.priority + 1,
+                ref_plan=n.ref_plan,
+                expansions=n.expansions + 1,
+                refnode=n,
+                label=n.label,
+                info=n.info,
+            )
 
             Q.put((n.heuristic(), n))
             Q.put((c.heuristic(), c))
@@ -78,7 +81,7 @@ def p_mod_abs(
                 return n.curr_plan, None
 
             Q.put((n.heuristic(), n))
-            
+
             if n.gen_child():
                 # Expand the node
                 fail_step, fail_pred, fail_negated = n.get_failed_pred()
@@ -86,15 +89,17 @@ def p_mod_abs(
                 abs_prob = hl_solver.translate_problem(n_problem, goal=goal)
                 prefix = n.curr_plan.prefix(fail_step)
 
-                c = HLSearchNode(abs_prob,
-                                 domain,
-                                 n_problem,
-                                 priority=n.priority + 1,
-                                 prefix=prefix,
-                                 label=n.label,
-                                 llnode=n,
-                                 expansions=n.expansions + 1,
-                                 info=n.info,)
+                c = HLSearchNode(
+                    abs_prob,
+                    domain,
+                    n_problem,
+                    priority=n.priority + 1,
+                    prefix=prefix,
+                    label=n.label,
+                    llnode=n,
+                    expansions=n.expansions + 1,
+                    info=n.info,
+                )
 
                 Q.put((c.heuristic(), c))
 
