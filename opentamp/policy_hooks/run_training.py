@@ -388,9 +388,15 @@ def argsparser():
         choices=[
             "metropolis_hastings",
             "gradient_descent",
+            "gradient_descent_with_restarts",
             "ula",
             "mala",
+            "hmc",
+            "hmc_no_mh",
             "penalty_sqp",
+            "penalty_sqp_with_restarts",
+            "nmc",
+            "nmc_no_mh",
         ],
     )
     parser.add_argument("--debug", action="store_true", default=False)

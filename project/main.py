@@ -67,7 +67,8 @@ class Logger:
 
 if __name__ == "__main__":
     args = argsparser()
-    logger = Logger(f"project/runs/{args.method}")
+    end_pose = [0.15, 0.5, 0.85]
+    logger = Logger(f"project/runs/moveto_{end_pose}/{args.method}")
 
     args.config = "opentamp.policy_hooks.robodesk.hyp"
     args.render = True
@@ -92,11 +93,13 @@ if __name__ == "__main__":
     openrave_bodies = None
     domain_fname = "project/move_to_grasp.domain"
     prob = "project/move_to_grasp.prob"
+    # domain_fname = "opentamp/domains/robot_manipulation_domain/right_desk.domain"
+    # prob = "opentamp/domains/robot_manipulation_domain/probs/robodesk_prob.prob"
     d_c = main.parse_file_to_dict(domain_fname)
     domain = parse_domain_config.ParseDomainConfig.parse(d_c)
     hls = FDSolver(d_c, cleanup_files=False)
     p_c = main.parse_file_to_dict(prob)
-    visual = True  # len(os.environ.get('DISPLAY', '')) > 0
+    visual = False  # len(os.environ.get('DISPLAY', '')) > 0
     # visual = False
     problem = parse_problem_config.ParseProblemConfig.parse(
         p_c, domain, None, use_tf=True, sess=None, visual=visual
@@ -158,7 +161,7 @@ if __name__ == "__main__":
                 params[targ].rotation[:, 0] = params[param].rotation[:, 0]
 
         goal = "(RobotAt panda robot_end_pose)"
-        end_pose = [0.15, 0.5, 0.85]
+        # goal = "(SlideDoorClose shelf_handle shelf))"
 
         params["robot_end_pose"].value = np.array([end_pose]).T
         params["robot_end_pose"].rotation = np.array([[0.0, 0.0, 0.0]]).T
@@ -200,7 +203,6 @@ if __name__ == "__main__":
         import copy
 
         run_results = []
-        renders = []
         panda = plan.params["panda"]
         for act in plan.actions:
             st, et = act.active_timesteps
@@ -214,7 +216,6 @@ if __name__ == "__main__":
                 ctrl = np.r_[panda.right[:, t], grip]
                 obs, rew, done, info = agent.mjc_env.step(ctrl)
                 run_results.append(copy.deepcopy((obs, rew, done, info)))
-                renders.append(agent.mjc_env.render())
                 if "hand_image" in obs:
                     agent.render_viewer(np.r_[obs["image"], obs["hand_image"]])
                 else:
@@ -226,39 +227,16 @@ if __name__ == "__main__":
         if not args.debug:
             logger.save_data()
 
-        """from dm_control import mujoco
-
-        camera = mujoco.Camera(
-            physics=agent.mjc_env.physics,
-            height=120,
-            width=120,
-            camera_id=0,
-        )
-        camera._render_camera.distance = 1.9
-        camera._render_camera.azimuth = 90
-        camera._render_camera.elevation = -60
-        camera._render_camera.lookat[:] = [
-            0,
-            0.535,
-            1.1,
-        ]  # pylint: disable=protected-access
-
-        image = camera.render(depth=False, segmentation=False)
-        from PIL import Image
-
-        Image.fromarray(image).save("project/scene.png")"""
-
-        """images = np.stack([obs["image"] for obs, _, _, _ in run_results])
-        # images = np.stack(renders)
+        images = np.stack([obs["image"] for obs, _, _, _ in run_results])
         out = cv2.VideoWriter(
-            f"project/video.mp4",
+            f"{logger.dir}/video.mp4",
             fourcc=cv2.VideoWriter_fourcc(*"mp4v"),
             fps=15,
             frameSize=(images.shape[2], images.shape[1]),
         )
         for img in images:
             out.write(img)
-        out.release()"""
+        out.release()
 
         """x = agent.get_state()
         goal_suc = [agent.parse_goal(x, g[0], g[1:]) for g in goal_info]
